@@ -5,7 +5,6 @@ import L from 'leaflet'
 
 const CustomCircle = ({ map, options }) => {
   const circleRef = useRef(null)
-  const animationRef = useRef(null)
 
   useEffect(() => {
     if (map && options) {

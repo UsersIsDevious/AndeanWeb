@@ -8,7 +8,8 @@ import PlayerList from './PlayerList'
 
 const ControlPanel = ({ 
   updateCircle,
-  players
+  players,
+  teams
 }) => {
   const [center, setCenter] = useState([0, 0])
   const [radius, setRadius] = useState(500)
@@ -93,7 +94,7 @@ const ControlPanel = ({
         </div>
         <Button type="submit">Update Circle</Button>
       </form>
-      <PlayerList players={players} />
+      <PlayerList players={players} teams={teams} />
     </div>
   )
 }

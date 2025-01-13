@@ -13,7 +13,7 @@ const PlayerMarker = ({ map, player, color }) => {
       }
 
       const [x, y] = player.pos
-      markerRef.current = L.circleMarker([y, x], {
+      markerRef.current = L.circleMarker([x, y], {
         radius: 5,
         color: color,
         fillColor: color,
@@ -22,10 +22,9 @@ const PlayerMarker = ({ map, player, color }) => {
 
       // Add a tooltip with player information
       markerRef.current.bindTooltip(`
-        ID: ${player.id.slice(0, 8)}...
+        ID: ${player.id}
         HP: ${player.hp[0]}/${player.hp[1]}
         Shield: ${player.hp[2]}/${player.hp[3]}
-        Pos: (${x.toFixed(2)}, ${y.toFixed(2)})
       `, { permanent: false, direction: 'top' })
     }
 
