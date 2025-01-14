@@ -10,7 +10,6 @@ import TimeControl from './TimeControl'
 
 const Map = ({ matchData }) => {
   const [map, setMap] = useState(null)
-  const [circle, setCircle] = useState(null)
   const [circleOptions, setCircleOptions] = useState(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -143,7 +142,7 @@ const Map = ({ matchData }) => {
 
     return {
       ...circleOptions,
-      radius: currentRadius
+      radius: currentRadius,
     }
   }
 
