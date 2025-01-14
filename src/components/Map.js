@@ -124,7 +124,7 @@ const Map = ({ matchData }) => {
   }, [currentTime, matchData])
 
   const updateCircle = (newOptions) => {
-    setCircleOptions({ ...circleOptions, ...newOptions })
+    setCircleOptions(prevOptions => ({ ...prevOptions, ...newOptions }))
   }
 
   const updateTime = (newTime) => {
@@ -149,14 +149,17 @@ const Map = ({ matchData }) => {
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="flex-grow flex">
+      <div className="flex-grow flex overflow-hidden">
         <div id="map" className="w-3/4 h-full"></div>
-        <div className="w-1/4 p-4 overflow-y-auto">
-          <ControlPanel 
-            updateCircle={updateCircle}
-            players={Object.values(matchData.players)}
-            teams={matchData.teams}
-          />
+        <div className="w-1/4 h-full flex flex-col">
+          <div className="flex-grow overflow-y-auto">
+            <ControlPanel 
+              updateCircle={updateCircle}
+              players={Object.values(matchData.players)}
+              teams={matchData.teams}
+              currentPlayerData={currentPlayerData}
+            />
+          </div>
         </div>
       </div>
       <TimeControl 

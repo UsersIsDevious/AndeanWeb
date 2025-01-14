@@ -3,29 +3,43 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import Image from 'next/image'
+import { Shield, Skull, Zap } from 'lucide-react'
+import { Progress } from "@/components/ui/progress"
 
-const PlayerList = ({ players, teams }) => {
-  const [expandedTeam, setExpandedTeam] = useState(null)
-  const [expandedPlayer, setExpandedPlayer] = useState(null)
+// レジェンドのアイコンマッピング
+const legendIcons = {
+  Loba: '/img/legends/loba.png',
+  // 他のレジェンドのアイコンをここに追加
+}
+
+const PlayerList = ({ players, teams, currentPlayerData }) => {
+  const [expandedTeams, setExpandedTeams] = useState([])
+  const [expandedPlayers, setExpandedPlayers] = useState([])
 
   const toggleTeam = (teamId) => {
-    if (expandedTeam === teamId) {
-      setExpandedTeam(null)
-    } else {
-      setExpandedTeam(teamId)
-    }
+    setExpandedTeams(prev => 
+      prev.includes(teamId) 
+        ? prev.filter(id => id !== teamId)
+        : [...prev, teamId]
+    )
   }
 
   const togglePlayer = (playerId) => {
-    if (expandedPlayer === playerId) {
-      setExpandedPlayer(null)
-    } else {
-      setExpandedPlayer(playerId)
-    }
+    setExpandedPlayers(prev => 
+      prev.includes(playerId)
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    )
+  }
+
+  const getPlayerData = (playerId) => {
+    const currentData = currentPlayerData.find(p => p.id === playerId)
+    const staticData = players.find(p => p.nucleusHash === playerId)
+    return { ...staticData, ...currentData }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4">
       <h3 className="text-lg font-semibold">Teams</h3>
       {Object.entries(teams).map(([teamId, team]) => (
         <div key={teamId} className="border rounded p-2">
@@ -37,28 +51,66 @@ const PlayerList = ({ players, teams }) => {
               <Image src={team.image} alt={team.name} width={24} height={24} className="mr-2" />
               <span>{team.name}</span>
             </div>
-            {expandedTeam === teamId ? <ChevronUp /> : <ChevronDown />}
+            {expandedTeams.includes(teamId) ? <ChevronUp /> : <ChevronDown />}
           </button>
-          {expandedTeam === teamId && (
+          {expandedTeams.includes(teamId) && (
             <div className="mt-2 space-y-2">
               {team.player.map((playerId) => {
-                const player = players.find(p => p.nucleusHash === playerId)
+                const player = getPlayerData(playerId)
                 return (
                   <div key={playerId} className="pl-4">
                     <button
                       className="w-full flex justify-between items-center"
                       onClick={() => togglePlayer(playerId)}
                     >
-                      <span>{player.name}</span>
-                      {expandedPlayer === playerId ? <ChevronUp /> : <ChevronDown />}
+                      <div className="flex items-center">
+                        {legendIcons[player.legend] && (
+                          <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
+                            <Image 
+                              src={legendIcons[player.legend]} 
+                              alt={player.legend} 
+                              width={24} 
+                              height={24} 
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <span>{player.name}</span>
+                      </div>
+                      {expandedPlayers.includes(playerId) ? <ChevronUp /> : <ChevronDown />}
                     </button>
-                    {expandedPlayer === playerId && (
-                      <div className="mt-1 pl-4 space-y-1 text-sm">
-                        <p>Legend: {player.legend}</p>
-                        <p>HP: {player.currentHealth}/{player.maxHealth}</p>
-                        <p>Shield: {player.shieldHealth}/{player.shieldMaxHealth}</p>
-                        <p>Kills: {player.kills.total}</p>
-                        <p>Damage Dealt: {player.damageDealt.total}</p>
+                    {expandedPlayers.includes(playerId) && (
+                      <div className="mt-2 pl-4 space-y-2 text-sm bg-gray-100 p-3 rounded-md">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-16">HP:</span>
+                          <Progress 
+                            value={(player.hp ? player.hp[0] : player.currentHealth) / (player.hp ? player.hp[1] : player.maxHealth) * 100} 
+                            className="w-full h-2"
+                          />
+                          <span className="w-16 text-right">
+                            {player.hp ? `${player.hp[0]}/${player.hp[1]}` : `${player.currentHealth}/${player.maxHealth}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-16">Shield:</span>
+                          <Progress 
+                            value={(player.hp ? player.hp[2] : player.shieldHealth) / (player.hp ? player.hp[3] : player.shieldMaxHealth) * 100} 
+                            className="w-full h-2"
+                          />
+                          <span className="w-16 text-right">
+                            {player.hp ? `${player.hp[2]}/${player.hp[3]}` : `${player.shieldHealth}/${player.shieldMaxHealth}`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-1">
+                            <Skull className="w-4 h-4" />
+                            <span>Kills: {player.kills.total}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Zap className="w-4 h-4" />
+                            <span>Damage: {player.damageDealt.total}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
