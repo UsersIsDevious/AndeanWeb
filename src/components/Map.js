@@ -100,25 +100,7 @@ const Map = ({ matchData }) => {
       const lastDataPointTime = matchData.datalist[matchData.datalist.length - 1].t * 1000
       setMaxTime(Math.max(maxTimeFromEvents, lastDataPointTime))
 
-      const currentDataPoint = matchData.datalist.reduce((prev, curr) => {
-        return (Math.abs(curr.t * 1000 - currentTime) < Math.abs(prev.t * 1000 - currentTime) ? curr : prev)
-      })
-
-      setCurrentPlayerData(currentDataPoint.data)
-
-      if (currentDataPoint.events) {
-        const ringEvent = currentDataPoint.events.find(event => event.type === 'ringStartClosing')
-        if (ringEvent) {
-          setCircleOptions({
-            center: ringEvent.center,
-            startRadius: ringEvent.currentradius,
-            endRadius: ringEvent.endradius,
-            color: '#ff0000',
-            startTime: currentDataPoint.t * 1000,
-            endTime: (currentDataPoint.t + ringEvent.shrinkduration) * 1000,
-          })
-        }
-      }
+      processEventsUpToTime(currentTime);
     }
   }, [currentTime, matchData])
 
@@ -126,9 +108,65 @@ const Map = ({ matchData }) => {
     setCircleOptions(prevOptions => ({ ...prevOptions, ...newOptions }))
   }
 
-  const updateTime = (newTime) => {
-    setCurrentTime(newTime)
-  }
+  const updateTime = (newTime, seeked = false) => {
+    setCurrentTime(newTime);
+    if (seeked) {
+      processEventsUpToTime(newTime);
+    }
+  };
+
+  const processEventsUpToTime = (targetTime) => {
+    if (!matchData || !matchData.datalist) return;
+
+    let currentCircleOptions = null;
+    let updatedPlayerData = [...currentPlayerData];
+
+    matchData.datalist.forEach(dataPoint => {
+      if (dataPoint.t * 1000 <= targetTime) {
+        // Update player data
+        updatedPlayerData = dataPoint.data;
+
+        // Process events
+        if (dataPoint.events) {
+          dataPoint.events.forEach(event => {
+            switch (event.type) {
+              case 'ringStartClosing':
+                currentCircleOptions = {
+                  center: event.center,
+                  startRadius: event.currentradius,
+                  endRadius: event.endradius,
+                  color: circleOptions ? circleOptions.color : '#ff0000',
+                  startTime: dataPoint.t * 1000,
+                  endTime: (dataPoint.t + event.shrinkduration) * 1000,
+                };
+                break;
+              case 'ringFinishedClosing':
+                if (currentCircleOptions) {
+                  currentCircleOptions = {
+                    ...currentCircleOptions,
+                    startRadius: event.currentradius,
+                    endRadius: event.currentradius,
+                  };
+                }
+                break;
+              case 'playerKilled':
+                updatedPlayerData = updatedPlayerData.map(player =>
+                  player.id === event.victim.id ? { ...player, hp: [0, player.hp[1], 0, player.hp[3]] } : player
+                );
+                break;
+              // Add more event types as needed
+            }
+          });
+        }
+      }
+    });
+
+    setCurrentPlayerData(updatedPlayerData);
+    if (currentCircleOptions) {
+      setCircleOptions(currentCircleOptions);
+    }
+  };
+
 
   const getCurrentPlayerData = () => {
     return currentPlayerData
@@ -152,7 +190,7 @@ const Map = ({ matchData }) => {
         <div id="map" className="w-3/4 h-full"></div>
         <div className="w-1/4 h-full flex flex-col">
           <div className="flex-grow overflow-y-auto">
-            <ControlPanel 
+            <ControlPanel
               updateCircle={updateCircle}
               players={Object.values(matchData.players)}
               teams={matchData.teams}
@@ -161,7 +199,7 @@ const Map = ({ matchData }) => {
           </div>
         </div>
       </div>
-      <TimeControl 
+      <TimeControl
         updateTime={updateTime}
         currentTime={currentTime}
         maxTime={maxTime}

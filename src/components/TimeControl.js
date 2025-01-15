@@ -15,7 +15,7 @@ const TimeControl = ({
   stop
 }) => {
   const handleTimeChange = (value) => {
-    updateTime(value[0]);
+    updateTime(value[0], true);
   }
 
   return (
