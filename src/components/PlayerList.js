@@ -6,6 +6,10 @@ import Image from 'next/image'
 import { Shield, Skull, Zap, X } from 'lucide-react'
 import { Progress } from "@/components/ui/progress"
 
+import nextConfig  from "../../next.config.mjs"
+const BASE_PATH = nextConfig.basePath ? nextConfig.basePath : "aaa"
+console.log(BASE_PATH)
+
 // レジェンドのアイコンマッピング
 const legendIcons = {
   Loba: '/img/legends/loba.png',
@@ -48,7 +52,7 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
             onClick={() => toggleTeam(teamId)}
           >
             <div className="flex items-center">
-              <Image src={team.image || "/placeholder.svg"} alt={team.name} width={24} height={24} className="mr-2" />
+              <Image src={team.image || `${BASE_PATH}/placeholder.svg`} alt={team.name} width={24} height={24} className="mr-2" />
               <span>{team.name}</span>
             </div>
             {expandedTeams.includes(teamId) ? <ChevronUp /> : <ChevronDown />}
@@ -68,7 +72,7 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
                         {legendIcons[player.legend] && (
                           <div className="w-6 h-6 rounded-full overflow-hidden mr-2 relative">
                             <Image 
-                              src={legendIcons[player.legend] || "/placeholder.svg"} 
+                              src={`${BASE_PATH}${legendIcons[player.legend] || "/placeholder.svg"}`}
                               alt={player.legend} 
                               width={24} 
                               height={24} 

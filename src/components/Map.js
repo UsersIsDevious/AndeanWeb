@@ -9,6 +9,9 @@ import ControlPanel from './ControlPanel'
 import TimeControl from './TimeControl'
 import LeafletCSS from './LeafletCSS'
 
+import nextConfig  from "../../next.config.mjs"
+const BASE_PATH = nextConfig.basePath ? nextConfig.basePath : ""
+
 const Map = ({ matchData }) => {
   const [map, setMap] = useState(null)
   const [circleOptions, setCircleOptions] = useState(null)
@@ -78,7 +81,7 @@ const Map = ({ matchData }) => {
         })
 
         const bounds = [[-2048, -2048], [2048, 2048]]
-        const image = LeafletModule.default.imageOverlay(`/img/${matchData.mapName}.png`, bounds).addTo(newMap)
+        const image = LeafletModule.default.imageOverlay(`${BASE_PATH}/img/${matchData.mapName}.png`, bounds).addTo(newMap)
 
         newMap.fitBounds(bounds)
         setMap(newMap)
