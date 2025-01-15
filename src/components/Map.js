@@ -1,13 +1,13 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import CustomCircle from './CustomCircle'
 import PlayerMarker from './PlayerMarker'
 import SkullMarker from './SkullMarker'
 import ControlPanel from './ControlPanel'
 import TimeControl from './TimeControl'
+import LeafletCSS from './LeafletCSS'
 
 const Map = ({ matchData }) => {
   const [map, setMap] = useState(null)
@@ -17,6 +17,8 @@ const Map = ({ matchData }) => {
   const [currentPlayerData, setCurrentPlayerData] = useState([])
   const [maxTime, setMaxTime] = useState(60 * 1000) // デフォルト値を60秒に設定
   const [skullMarkers, setSkullMarkers] = useState([])
+  const [isClient, setIsClient] = useState(false)
+  const [L, setL] = useState(null)
 
   const timerRef = useRef(null)
 
@@ -47,33 +49,40 @@ const Map = ({ matchData }) => {
   }
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
     if (typeof window !== 'undefined' && !map && matchData) {
-      const customCRS = L.extend({}, L.CRS.Simple, {
-        transformation: new L.Transformation(1, 2048, -1, 2048),
-        projection: {
-          project: function (latlng) {
-            return new L.Point(latlng.lat, latlng.lng);
+      import('leaflet').then((LeafletModule) => {
+        setL(LeafletModule.default)
+        const customCRS = LeafletModule.default.extend({}, LeafletModule.default.CRS.Simple, {
+          transformation: new LeafletModule.default.Transformation(1, 2048, -1, 2048),
+          projection: {
+            project: function (latlng) {
+              return new LeafletModule.default.Point(latlng.lat, latlng.lng);
+            },
+            unproject: function (point) {
+              return new LeafletModule.default.LatLng(point.x, point.y);
+            }
           },
-          unproject: function (point) {
-            return new L.LatLng(point.x, point.y);
-          }
-        },
-        bounds: L.bounds([-2048, -2048], [2048, 2048])
+          bounds: LeafletModule.default.bounds([-2048, -2048], [2048, 2048])
+        });
+
+        const newMap = LeafletModule.default.map('map', {
+          crs: customCRS,
+          minZoom: -3,
+          maxZoom: 3,
+          center: [0, 0],
+          zoom: 0,
+        })
+
+        const bounds = [[-2048, -2048], [2048, 2048]]
+        const image = LeafletModule.default.imageOverlay(`/img/${matchData.mapName}.png`, bounds).addTo(newMap)
+
+        newMap.fitBounds(bounds)
+        setMap(newMap)
       });
-
-      const newMap = L.map('map', {
-        crs: customCRS,
-        minZoom: -3,
-        maxZoom: 3,
-        center: [0, 0],
-        zoom: 0,
-      })
-
-      const bounds = [[-2048, -2048], [2048, 2048]]
-      const image = L.imageOverlay(`/img/${matchData.mapName}.png`, bounds).addTo(newMap)
-
-      newMap.fitBounds(bounds)
-      setMap(newMap)
     }
   }, [map, matchData])
 
@@ -118,7 +127,6 @@ const Map = ({ matchData }) => {
   const processEventsUpToTime = (targetTime) => {
     if (!matchData || !matchData.datalist) return;
 
-    // Reset to initial state
     let updatedPlayerData = Object.values(matchData.players).map(player => ({
       ...player,
       hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
@@ -132,7 +140,6 @@ const Map = ({ matchData }) => {
 
     matchData.datalist.forEach(dataPoint => {
       if (dataPoint.t * 1000 <= targetTime) {
-        // Update player data
         dataPoint.data.forEach(playerUpdate => {
           const playerIndex = updatedPlayerData.findIndex(p => p.nucleusHash === playerUpdate.id);
           if (playerIndex !== -1) {
@@ -144,7 +151,6 @@ const Map = ({ matchData }) => {
           }
         });
 
-        // Process events
         if (dataPoint.events) {
           dataPoint.events.forEach(event => {
             switch (event.type) {
@@ -190,10 +196,9 @@ const Map = ({ matchData }) => {
                 newSkullMarkers.push({ 
                   position: event.victim.pos, 
                   startTime: dataPoint.t * 1000,
-                  endTime: dataPoint.t * 1000 + 5000 // 5 seconds duration
+                  endTime: dataPoint.t * 1000 + 5000
                 });
                 break;
-              // Add more event types as needed
             }
           });
         }
@@ -208,7 +213,6 @@ const Map = ({ matchData }) => {
       marker.startTime <= targetTime && marker.endTime > targetTime
     ));
   };
-
 
   const getCurrentPlayerData = () => {
     return currentPlayerData
@@ -250,11 +254,13 @@ const Map = ({ matchData }) => {
         pause={pause}
         stop={stop}
       />
-      {map && (
+      {isClient && <LeafletCSS />}
+      {map && L && (
         <>
           <CustomCircle
             map={map}
             options={getCurrentRingData()}
+            L={L}
           />
           {getCurrentPlayerData().map((player) => (
             <PlayerMarker
@@ -262,6 +268,7 @@ const Map = ({ matchData }) => {
               map={map}
               player={player}
               color={matchData.players[player.id].teamId === 1 ? '#0000FF' : '#00FF00'}
+              L={L}
             />
           ))}
           {skullMarkers.map((marker, index) => (
@@ -269,6 +276,7 @@ const Map = ({ matchData }) => {
               key={`skull-${index}`}
               map={map}
               position={marker.position}
+              L={L}
             />
           ))}
         </>

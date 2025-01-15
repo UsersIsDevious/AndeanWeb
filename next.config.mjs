@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    basePath: "/AndeanWeb",
+    basePath: "",
     output: "export",
     images: {
         unoptimized: true,

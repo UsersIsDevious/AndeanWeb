@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import L from 'leaflet'
 
-const CustomCircle = ({ map, options }) => {
+const CustomCircle = ({ map, options, L }) => {
   const polygonRef = useRef(null)
 
   const createCirclePoints = (center, radius, numPoints = 64) => {
@@ -18,7 +17,7 @@ const CustomCircle = ({ map, options }) => {
   }
 
   useEffect(() => {
-    if (map && options) {
+    if (map && options && L) {
       if (polygonRef.current) {
         polygonRef.current.remove()
       }
@@ -44,7 +43,7 @@ const CustomCircle = ({ map, options }) => {
         polygonRef.current.remove()
       }
     }
-  }, [map, options])
+  }, [map, options, L])
 
   return null
 }

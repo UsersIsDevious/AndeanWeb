@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import L from 'leaflet'
 
-const PlayerMarker = ({ map, player, color }) => {
+const PlayerMarker = ({ map, player, color, L }) => {
   const markerRef = useRef(null)
 
   useEffect(() => {
-    if (map && player) {
+    if (map && player && player.hp[0] > 0) {
       if (markerRef.current) {
         markerRef.current.remove()
       }
@@ -26,6 +25,8 @@ const PlayerMarker = ({ map, player, color }) => {
         HP: ${player.hp[0]}/${player.hp[1]}
         Shield: ${player.hp[2]}/${player.hp[3]}
       `, { permanent: false, direction: 'top' })
+    } else if (markerRef.current) {
+      markerRef.current.remove()
     }
 
     return () => {
