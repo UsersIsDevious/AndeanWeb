@@ -229,7 +229,7 @@ const matchData = {
         { "id": "Z9Y8X7W6V5U4T3S2R1Q0P9O8N7M6L5K4", "pos": [22.3, 46.8,0], "hp": [100,100,50,50] }
     ],
     "events": [
-        { "type": "playerKilled", "attacker":{ "id": "A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6", "pos": [1164.41885653, 2561.74138849,-277.66026722] }, "victim": { "id": "Z9Y8X7W6V5U4T3S2R1Q0P9O8N7M6L5K4", "pos": [2940.36363636,2560.34659091,-274.28409091] },"weapon":"Devotion"}
+        { "type": "playerKilled", "attacker":{ "id": "A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6", "pos": [10, 10,-277.66026722] }, "victim": { "id": "Z9Y8X7W6V5U4T3S2R1Q0P9O8N7M6L5K4", "pos": [0,0,-274.28409091] },"weapon":"Devotion"}
     ]
 }
     ]

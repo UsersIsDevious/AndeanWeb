@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import Image from 'next/image'
-import { Shield, Skull, Zap } from 'lucide-react'
+import { Shield, Skull, Zap, X } from 'lucide-react'
 import { Progress } from "@/components/ui/progress"
 
 // レジェンドのアイコンマッピング
@@ -48,7 +48,7 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
             onClick={() => toggleTeam(teamId)}
           >
             <div className="flex items-center">
-              <Image src={team.image} alt={team.name} width={24} height={24} className="mr-2" />
+              <Image src={team.image || "/placeholder.svg"} alt={team.name} width={24} height={24} className="mr-2" />
               <span>{team.name}</span>
             </div>
             {expandedTeams.includes(teamId) ? <ChevronUp /> : <ChevronDown />}
@@ -57,6 +57,7 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
             <div className="mt-2 space-y-2">
               {team.player.map((playerId) => {
                 const player = getPlayerData(playerId)
+                const isDead = player.hp[0] <= 0
                 return (
                   <div key={playerId} className="pl-4">
                     <button
@@ -65,14 +66,19 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
                     >
                       <div className="flex items-center">
                         {legendIcons[player.legend] && (
-                          <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
+                          <div className="w-6 h-6 rounded-full overflow-hidden mr-2 relative">
                             <Image 
-                              src={legendIcons[player.legend]} 
+                              src={legendIcons[player.legend] || "/placeholder.svg"} 
                               alt={player.legend} 
                               width={24} 
                               height={24} 
                               className="object-cover"
                             />
+                            {isDead && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                <X className="text-red-500" size={20} />
+                              </div>
+                            )}
                           </div>
                         )}
                         <span>{player.name}</span>
@@ -84,31 +90,31 @@ const PlayerList = ({ players, teams, currentPlayerData }) => {
                         <div className="flex items-center space-x-2">
                           <span className="w-16">HP:</span>
                           <Progress 
-                            value={(player.hp ? player.hp[0] : player.currentHealth) / (player.hp ? player.hp[1] : player.maxHealth) * 100} 
+                            value={(player.hp[0] / player.hp[1]) * 100} 
                             className="w-full h-2"
                           />
                           <span className="w-16 text-right">
-                            {player.hp ? `${player.hp[0]}/${player.hp[1]}` : `${player.currentHealth}/${player.maxHealth}`}
+                            {`${player.hp[0]}/${player.hp[1]}`}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="w-16">Shield:</span>
                           <Progress 
-                            value={(player.hp ? player.hp[2] : player.shieldHealth) / (player.hp ? player.hp[3] : player.shieldMaxHealth) * 100} 
+                            value={(player.hp[2] / player.hp[3]) * 100} 
                             className="w-full h-2"
                           />
                           <span className="w-16 text-right">
-                            {player.hp ? `${player.hp[2]}/${player.hp[3]}` : `${player.shieldHealth}/${player.shieldMaxHealth}`}
+                            {`${player.hp[2]}/${player.hp[3]}`}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <div className="flex items-center space-x-1">
                             <Skull className="w-4 h-4" />
-                            <span>Kills: {player.kills.total}</span>
+                            <span>Kills: {player.kills?.total || 0}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Zap className="w-4 h-4" />
-                            <span>Damage: {player.damageDealt.total}</span>
+                            <span>Damage: {player.damageDealt?.total || 0}</span>
                           </div>
                         </div>
                       </div>

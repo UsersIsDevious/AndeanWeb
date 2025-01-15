@@ -5,6 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import CustomCircle from './CustomCircle'
 import PlayerMarker from './PlayerMarker'
+import SkullMarker from './SkullMarker'
 import ControlPanel from './ControlPanel'
 import TimeControl from './TimeControl'
 
@@ -15,6 +16,7 @@ const Map = ({ matchData }) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentPlayerData, setCurrentPlayerData] = useState([])
   const [maxTime, setMaxTime] = useState(60 * 1000) // デフォルト値を60秒に設定
+  const [skullMarkers, setSkullMarkers] = useState([])
 
   const timerRef = useRef(null)
 
@@ -108,23 +110,39 @@ const Map = ({ matchData }) => {
     setCircleOptions(prevOptions => ({ ...prevOptions, ...newOptions }))
   }
 
-  const updateTime = (newTime, seeked = false) => {
+  const updateTime = (newTime) => {
     setCurrentTime(newTime);
-    if (seeked) {
-      processEventsUpToTime(newTime);
-    }
+    processEventsUpToTime(newTime);
   };
 
   const processEventsUpToTime = (targetTime) => {
     if (!matchData || !matchData.datalist) return;
 
+    // Reset to initial state
+    let updatedPlayerData = Object.values(matchData.players).map(player => ({
+      ...player,
+      hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
+      pos: [player.pos.x, player.pos.y, player.pos.z],
+      kills: { total: 0 },
+      damageDealt: { total: 0 },
+    }));
+
     let currentCircleOptions = null;
-    let updatedPlayerData = [...currentPlayerData];
+    let newSkullMarkers = [];
 
     matchData.datalist.forEach(dataPoint => {
       if (dataPoint.t * 1000 <= targetTime) {
         // Update player data
-        updatedPlayerData = dataPoint.data;
+        dataPoint.data.forEach(playerUpdate => {
+          const playerIndex = updatedPlayerData.findIndex(p => p.nucleusHash === playerUpdate.id);
+          if (playerIndex !== -1) {
+            updatedPlayerData[playerIndex] = {
+              ...updatedPlayerData[playerIndex],
+              ...playerUpdate,
+              pos: playerUpdate.pos || updatedPlayerData[playerIndex].pos,
+            };
+          }
+        });
 
         // Process events
         if (dataPoint.events) {
@@ -150,9 +168,30 @@ const Map = ({ matchData }) => {
                 }
                 break;
               case 'playerKilled':
-                updatedPlayerData = updatedPlayerData.map(player =>
-                  player.id === event.victim.id ? { ...player, hp: [0, player.hp[1], 0, player.hp[3]] } : player
-                );
+                const victimIndex = updatedPlayerData.findIndex(p => p.nucleusHash === event.victim.id);
+                const attackerIndex = updatedPlayerData.findIndex(p => p.nucleusHash === event.attacker.id);
+                if (victimIndex !== -1) {
+                  updatedPlayerData[victimIndex] = {
+                    ...updatedPlayerData[victimIndex],
+                    hp: [0, updatedPlayerData[victimIndex].hp[1], 0, updatedPlayerData[victimIndex].hp[3]],
+                    pos: event.victim.pos,
+                  };
+                }
+                if (attackerIndex !== -1) {
+                  updatedPlayerData[attackerIndex] = {
+                    ...updatedPlayerData[attackerIndex],
+                    kills: { 
+                      ...updatedPlayerData[attackerIndex].kills,
+                      total: (updatedPlayerData[attackerIndex].kills?.total || 0) + 1 
+                    },
+                    pos: event.attacker.pos,
+                  };
+                }
+                newSkullMarkers.push({ 
+                  position: event.victim.pos, 
+                  startTime: dataPoint.t * 1000,
+                  endTime: dataPoint.t * 1000 + 5000 // 5 seconds duration
+                });
                 break;
               // Add more event types as needed
             }
@@ -165,6 +204,9 @@ const Map = ({ matchData }) => {
     if (currentCircleOptions) {
       setCircleOptions(currentCircleOptions);
     }
+    setSkullMarkers(newSkullMarkers.filter(marker => 
+      marker.startTime <= targetTime && marker.endTime > targetTime
+    ));
   };
 
 
@@ -220,6 +262,13 @@ const Map = ({ matchData }) => {
               map={map}
               player={player}
               color={matchData.players[player.id].teamId === 1 ? '#0000FF' : '#00FF00'}
+            />
+          ))}
+          {skullMarkers.map((marker, index) => (
+            <SkullMarker
+              key={`skull-${index}`}
+              map={map}
+              position={marker.position}
             />
           ))}
         </>
