@@ -1,18 +1,20 @@
-'use client'
+"use client"
 
-import Image from 'next/image'
-import { useEffect, useState, useRef } from 'react'
-import CustomCircle from './CustomCircle'
-import PlayerMarker from './PlayerMarker'
-import SkullMarker from './SkullMarker'
-import ControlPanel from './ControlPanel'
-import TimeControl from './TimeControl'
-import LeafletCSS from './LeafletCSS'
+import Image from "next/image"
+import { useEffect, useState, useRef } from "react"
+import CustomCircle from "./CustomCircle.js"
+import PlayerMarker from "./PlayerMarker.js"
+import SkullMarker from "./SkullMarker.js"
+import ControlPanel from "./ControlPanel.js"
+import TimeControl from "./TimeControl.js"
+import LeafletCSS from "./LeafletCSS.js"
+import { BASE_PATH } from "../utils/constants.js"
 
-import nextConfig  from "../../next.config.mjs"
-const BASE_PATH = nextConfig.basePath ? nextConfig.basePath : ""
-
-const Map = ({ matchData }) => {
+const Map = ({ initialMatchData }) => {
+  if (!initialMatchData) {
+    return <div>No match data available. Please input data first.</div>
+  }
+  const [matchData, setMatchData] = useState(initialMatchData)
   const [map, setMap] = useState(null)
   const [circleOptions, setCircleOptions] = useState(null)
   const [currentTime, setCurrentTime] = useState(0)
@@ -29,7 +31,7 @@ const Map = ({ matchData }) => {
     setIsPlaying(true)
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      setCurrentTime(prevTime => {
+      setCurrentTime((prevTime) => {
         if (prevTime >= maxTime) {
           clearInterval(timerRef.current)
           setIsPlaying(false)
@@ -51,28 +53,35 @@ const Map = ({ matchData }) => {
     setCurrentTime(0)
   }
 
+  const handleJSONUpload = (newMatchData) => {
+    // Reset the map state
+    setCurrentTime(0)
+    setIsPlaying(false)
+    setCurrentPlayerData([])
+    setSkullMarkers([])
+
+    // Update the match data
+    setMatchData(newMatchData)
+  }
+
   useEffect(() => {
     setIsClient(true)
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !map && matchData) {
-      import('leaflet').then((LeafletModule) => {
+    if (typeof window !== "undefined" && !map && matchData) {
+      import("leaflet").then((LeafletModule) => {
         setL(LeafletModule.default)
         const customCRS = LeafletModule.default.extend({}, LeafletModule.default.CRS.Simple, {
           transformation: new LeafletModule.default.Transformation(1, 2048, -1, 2048),
           projection: {
-            project: function (latlng) {
-              return new LeafletModule.default.Point(latlng.lat, latlng.lng);
-            },
-            unproject: function (point) {
-              return new LeafletModule.default.LatLng(point.x, point.y);
-            }
+            project: (latlng) => new LeafletModule.default.Point(latlng.lat, latlng.lng),
+            unproject: (point) => new LeafletModule.default.LatLng(point.x, point.y),
           },
-          bounds: LeafletModule.default.bounds([-2048, -2048], [2048, 2048])
-        });
+          bounds: LeafletModule.default.bounds([-2048, -2048], [2048, 2048]),
+        })
 
-        const newMap = LeafletModule.default.map('map', {
+        const newMap = LeafletModule.default.map("map", {
           crs: customCRS,
           minZoom: -3,
           maxZoom: 3,
@@ -80,12 +89,17 @@ const Map = ({ matchData }) => {
           zoom: 0,
         })
 
-        const bounds = [[-2048, -2048], [2048, 2048]]
-        const image = LeafletModule.default.imageOverlay(`${BASE_PATH}/img/${matchData.mapName}.png`, bounds).addTo(newMap)
+        const bounds = [
+          [-2048, -2048],
+          [2048, 2048],
+        ]
+        const image = LeafletModule.default
+          .imageOverlay(`${(BASE_PATH)}/img/${matchData.mapName}.png`, bounds)
+          .addTo(newMap)
 
         newMap.fitBounds(bounds)
         setMap(newMap)
-      });
+      })
     }
   }, [map, matchData])
 
@@ -98,10 +112,10 @@ const Map = ({ matchData }) => {
   useEffect(() => {
     if (matchData && matchData.datalist) {
       let maxTimeFromEvents = 0
-      matchData.datalist.forEach(dataPoint => {
+      matchData.datalist.forEach((dataPoint) => {
         if (dataPoint.events) {
-          dataPoint.events.forEach(event => {
-            if (event.type === 'ringStartClosing') {
+          dataPoint.events.forEach((event) => {
+            if (event.type === "ringStartClosing") {
               const eventEndTime = (dataPoint.t + event.shrinkduration) * 1000
               if (eventEndTime > maxTimeFromEvents) {
                 maxTimeFromEvents = eventEndTime
@@ -114,108 +128,106 @@ const Map = ({ matchData }) => {
       const lastDataPointTime = matchData.datalist[matchData.datalist.length - 1].t * 1000
       setMaxTime(Math.max(maxTimeFromEvents, lastDataPointTime))
 
-      processEventsUpToTime(currentTime);
+      processEventsUpToTime(currentTime)
     }
   }, [currentTime, matchData])
 
   const updateCircle = (newOptions) => {
-    setCircleOptions(prevOptions => ({ ...prevOptions, ...newOptions }))
+    setCircleOptions((prevOptions) => ({ ...prevOptions, ...newOptions }))
   }
 
   const updateTime = (newTime) => {
-    setCurrentTime(newTime);
-    processEventsUpToTime(newTime);
-  };
+    setCurrentTime(newTime)
+    processEventsUpToTime(newTime)
+  }
 
   const processEventsUpToTime = (targetTime) => {
-    if (!matchData || !matchData.datalist) return;
+    if (!matchData || !matchData.datalist) return
 
-    let updatedPlayerData = Object.values(matchData.players).map(player => ({
+    const updatedPlayerData = Object.values(matchData.players).map((player) => ({
       ...player,
       hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
       pos: [player.pos.x, player.pos.y, player.pos.z],
       kills: { total: 0 },
       damageDealt: { total: 0 },
-    }));
+    }))
 
-    let currentCircleOptions = null;
-    let newSkullMarkers = [];
+    let currentCircleOptions = null
+    const newSkullMarkers = []
 
-    matchData.datalist.forEach(dataPoint => {
+    matchData.datalist.forEach((dataPoint) => {
       if (dataPoint.t * 1000 <= targetTime) {
-        dataPoint.data.forEach(playerUpdate => {
-          const playerIndex = updatedPlayerData.findIndex(p => p.nucleusHash === playerUpdate.id);
+        dataPoint.data.forEach((playerUpdate) => {
+          const playerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === playerUpdate.id)
           if (playerIndex !== -1) {
             updatedPlayerData[playerIndex] = {
               ...updatedPlayerData[playerIndex],
               ...playerUpdate,
               pos: playerUpdate.pos || updatedPlayerData[playerIndex].pos,
-            };
+            }
           }
-        });
+        })
 
         if (dataPoint.events) {
-          dataPoint.events.forEach(event => {
+          dataPoint.events.forEach((event) => {
             switch (event.type) {
-              case 'ringStartClosing':
+              case "ringStartClosing":
                 currentCircleOptions = {
                   center: event.center,
                   startRadius: event.currentradius,
                   endRadius: event.endradius,
-                  color: circleOptions ? circleOptions.color : '#ff0000',
+                  color: circleOptions ? circleOptions.color : "#ff0000",
                   startTime: dataPoint.t * 1000,
                   endTime: (dataPoint.t + event.shrinkduration) * 1000,
-                };
-                break;
-              case 'ringFinishedClosing':
+                }
+                break
+              case "ringFinishedClosing":
                 if (currentCircleOptions) {
                   currentCircleOptions = {
                     ...currentCircleOptions,
                     startRadius: event.currentradius,
                     endRadius: event.currentradius,
-                  };
+                  }
                 }
-                break;
-              case 'playerKilled':
-                const victimIndex = updatedPlayerData.findIndex(p => p.nucleusHash === event.victim.id);
-                const attackerIndex = updatedPlayerData.findIndex(p => p.nucleusHash === event.attacker.id);
+                break
+              case "playerKilled":
+                const victimIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.victim.id)
+                const attackerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.attacker.id)
                 if (victimIndex !== -1) {
                   updatedPlayerData[victimIndex] = {
                     ...updatedPlayerData[victimIndex],
                     hp: [0, updatedPlayerData[victimIndex].hp[1], 0, updatedPlayerData[victimIndex].hp[3]],
                     pos: event.victim.pos,
-                  };
+                  }
                 }
                 if (attackerIndex !== -1) {
                   updatedPlayerData[attackerIndex] = {
                     ...updatedPlayerData[attackerIndex],
-                    kills: { 
+                    kills: {
                       ...updatedPlayerData[attackerIndex].kills,
-                      total: (updatedPlayerData[attackerIndex].kills?.total || 0) + 1 
+                      total: (updatedPlayerData[attackerIndex].kills?.total || 0) + 1,
                     },
                     pos: event.attacker.pos,
-                  };
+                  }
                 }
-                newSkullMarkers.push({ 
-                  position: event.victim.pos, 
+                newSkullMarkers.push({
+                  position: event.victim.pos,
                   startTime: dataPoint.t * 1000,
-                  endTime: dataPoint.t * 1000 + 5000
-                });
-                break;
+                  endTime: dataPoint.t * 1000 + 5000,
+                })
+                break
             }
-          });
+          })
         }
       }
-    });
+    })
 
-    setCurrentPlayerData(updatedPlayerData);
+    setCurrentPlayerData(updatedPlayerData)
     if (currentCircleOptions) {
-      setCircleOptions(currentCircleOptions);
+      setCircleOptions(currentCircleOptions)
     }
-    setSkullMarkers(newSkullMarkers.filter(marker => 
-      marker.startTime <= targetTime && marker.endTime > targetTime
-    ));
-  };
+    setSkullMarkers(newSkullMarkers.filter((marker) => marker.startTime <= targetTime && marker.endTime > targetTime))
+  }
 
   const getCurrentPlayerData = () => {
     return currentPlayerData
@@ -244,6 +256,7 @@ const Map = ({ matchData }) => {
               players={Object.values(matchData.players)}
               teams={matchData.teams}
               currentPlayerData={currentPlayerData}
+              onJSONUpload={handleJSONUpload}
             />
           </div>
         </div>
@@ -260,27 +273,18 @@ const Map = ({ matchData }) => {
       {isClient && <LeafletCSS />}
       {map && L && (
         <>
-          <CustomCircle
-            map={map}
-            options={getCurrentRingData()}
-            L={L}
-          />
+          <CustomCircle map={map} options={getCurrentRingData()} L={L} />
           {getCurrentPlayerData().map((player) => (
             <PlayerMarker
               key={player.id}
               map={map}
               player={player}
-              color={matchData.players[player.id].teamId === 1 ? '#0000FF' : '#00FF00'}
+              color={matchData.players[player.id].teamId === 1 ? "#0000FF" : "#00FF00"}
               L={L}
             />
           ))}
           {skullMarkers.map((marker, index) => (
-            <SkullMarker
-              key={`skull-${index}`}
-              map={map}
-              position={marker.position}
-              L={L}
-            />
+            <SkullMarker key={`skull-${index}`} map={map} position={marker.position} L={L} />
           ))}
         </>
       )}

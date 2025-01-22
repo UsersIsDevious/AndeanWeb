@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from "react"
 
 const CustomCircle = ({ map, options, L }) => {
   const polygonRef = useRef(null)
@@ -34,7 +34,7 @@ const CustomCircle = ({ map, options, L }) => {
         color: options.color,
         fillColor: options.color,
         fillOpacity: 0.2,
-        weight: 2
+        weight: 2,
       }).addTo(map)
     }
 

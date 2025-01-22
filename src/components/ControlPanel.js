@@ -1,18 +1,16 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import PlayerList from './PlayerList'
+import PlayerList from "./PlayerList.js"
+import Settings from "./Settings.js"
+import { SettingsIcon } from "lucide-react"
 
-const ControlPanel = ({ 
-  updateCircle,
-  players,
-  teams,
-  currentPlayerData
-}) => {
-  const [color, setColor] = useState('#ff0000')
+const ControlPanel = ({ updateCircle, players, teams, currentPlayerData, onJSONUpload }) => {
+  const [color, setColor] = useState("#ff0000")
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -21,23 +19,12 @@ const ControlPanel = ({
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="color">Ring Color:</Label>
-          <Input
-            id="color"
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-        </div>
-        <Button type="submit">Update Ring Color</Button>
-      </form>
-      <PlayerList 
-        players={players} 
-        teams={teams} 
-        currentPlayerData={currentPlayerData}
-      />
+      <Button onClick={() => setShowSettings(!showSettings)} className="mb-4 flex items-center space-x-2">
+        <SettingsIcon className="w-4 h-4" />
+        <span>{showSettings ? "Hide Settings" : "Show Settings"}</span>
+      </Button>
+      {showSettings && <Settings updateCircle={updateCircle} onJSONUpload={onJSONUpload} />}
+      <PlayerList players={players} teams={teams} currentPlayerData={currentPlayerData} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from "react"
 
 const PlayerMarker = ({ map, player, color, L }) => {
   const markerRef = useRef(null)
@@ -20,11 +20,14 @@ const PlayerMarker = ({ map, player, color, L }) => {
       }).addTo(map)
 
       // Add a tooltip with player information
-      markerRef.current.bindTooltip(`
+      markerRef.current.bindTooltip(
+        `
         ID: ${player.id}
         HP: ${player.hp[0]}/${player.hp[1]}
         Shield: ${player.hp[2]}/${player.hp[3]}
-      `, { permanent: false, direction: 'top' })
+      `,
+        { permanent: false, direction: "top" },
+      )
     } else if (markerRef.current) {
       markerRef.current.remove()
     }
@@ -34,7 +37,7 @@ const PlayerMarker = ({ map, player, color, L }) => {
         markerRef.current.remove()
       }
     }
-  }, [map, player, color])
+  }, [map, player, color, L])
 
   return null
 }
