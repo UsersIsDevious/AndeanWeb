@@ -94,7 +94,7 @@ const Map = ({ initialMatchData }) => {
           [2048, 2048],
         ]
         const image = LeafletModule.default
-          .imageOverlay(`${(BASE_PATH)}/img/${matchData.mapName}.png`, bounds)
+          .imageOverlay(`${BASE_PATH}/img/${matchData.mapName}.png`, bounds)
           .addTo(newMap)
 
         newMap.fitBounds(bounds)
@@ -110,13 +110,13 @@ const Map = ({ initialMatchData }) => {
   }, [])
 
   useEffect(() => {
-    if (matchData && matchData.datalist) {
+    if (matchData && matchData.packetLists) {
       let maxTimeFromEvents = 0
-      matchData.datalist.forEach((dataPoint) => {
-        if (dataPoint.events) {
-          dataPoint.events.forEach((event) => {
+      Object.values(matchData.packetLists).forEach((packet) => {
+        if (packet.events) {
+          packet.events.forEach((event) => {
             if (event.type === "ringStartClosing") {
-              const eventEndTime = (dataPoint.t + event.shrinkduration) * 1000
+              const eventEndTime = (packet.t + event.shrinkduration) * 1000
               if (eventEndTime > maxTimeFromEvents) {
                 maxTimeFromEvents = eventEndTime
               }
@@ -125,7 +125,7 @@ const Map = ({ initialMatchData }) => {
         }
       })
 
-      const lastDataPointTime = matchData.datalist[matchData.datalist.length - 1].t * 1000
+      const lastDataPointTime = Math.max(...Object.keys(matchData.packetLists).map(Number)) * 1000
       setMaxTime(Math.max(maxTimeFromEvents, lastDataPointTime))
 
       processEventsUpToTime(currentTime)
@@ -142,7 +142,7 @@ const Map = ({ initialMatchData }) => {
   }
 
   const processEventsUpToTime = (targetTime) => {
-    if (!matchData || !matchData.datalist) return
+    if (!matchData || !matchData.packetLists) return
 
     const updatedPlayerData = Object.values(matchData.players).map((player) => ({
       ...player,
@@ -155,9 +155,9 @@ const Map = ({ initialMatchData }) => {
     let currentCircleOptions = null
     const newSkullMarkers = []
 
-    matchData.datalist.forEach((dataPoint) => {
-      if (dataPoint.t * 1000 <= targetTime) {
-        dataPoint.data.forEach((playerUpdate) => {
+    Object.entries(matchData.packetLists).forEach(([time, packet]) => {
+      if (packet.t * 1000 <= targetTime) {
+        packet.data.forEach((playerUpdate) => {
           const playerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === playerUpdate.id)
           if (playerIndex !== -1) {
             updatedPlayerData[playerIndex] = {
@@ -168,8 +168,8 @@ const Map = ({ initialMatchData }) => {
           }
         })
 
-        if (dataPoint.events) {
-          dataPoint.events.forEach((event) => {
+        if (packet.events) {
+          packet.events.forEach((event) => {
             switch (event.type) {
               case "ringStartClosing":
                 currentCircleOptions = {
@@ -177,8 +177,8 @@ const Map = ({ initialMatchData }) => {
                   startRadius: event.currentradius,
                   endRadius: event.endradius,
                   color: circleOptions ? circleOptions.color : "#ff0000",
-                  startTime: dataPoint.t * 1000,
-                  endTime: (dataPoint.t + event.shrinkduration) * 1000,
+                  startTime: packet.t * 1000,
+                  endTime: (packet.t + event.shrinkduration) * 1000,
                 }
                 break
               case "ringFinishedClosing":
@@ -212,8 +212,8 @@ const Map = ({ initialMatchData }) => {
                 }
                 newSkullMarkers.push({
                   position: event.victim.pos,
-                  startTime: dataPoint.t * 1000,
-                  endTime: dataPoint.t * 1000 + 5000,
+                  startTime: packet.t * 1000,
+                  endTime: packet.t * 1000 + 5000,
                 })
                 break
             }
