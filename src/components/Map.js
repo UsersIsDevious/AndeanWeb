@@ -253,7 +253,7 @@ const Map = ({ initialMatchData }) => {
           <div className="flex-grow overflow-y-auto">
             <ControlPanel
               updateCircle={updateCircle}
-              players={Object.values(matchData.players)}
+              players={matchData.players}
               teams={matchData.teams}
               currentPlayerData={currentPlayerData}
               onJSONUpload={handleJSONUpload}
@@ -274,17 +274,20 @@ const Map = ({ initialMatchData }) => {
       {map && L && (
         <>
           <CustomCircle map={map} options={getCurrentRingData()} L={L} />
-          {getCurrentPlayerData().map((player) => (
-            <PlayerMarker
-              key={player.id}
-              map={map}
-              player={player}
-              color={matchData.players[player.id].teamId === 1 ? "#0000FF" : "#00FF00"}
-              L={L}
-            />
-          ))}
+          {getCurrentPlayerData().map((player) => {
+            const teamId = matchData.players[player.nucleusHash]?.teamId
+            return (
+              <PlayerMarker
+                key={player.nucleusHash}
+                map={map}
+                player={player}
+                color={teamId === 1 ? "#0000FF" : "#00FF00"}
+                L={L}
+              />
+            )
+          })}
           {skullMarkers.map((marker, index) => (
-            <SkullMarker key={`skull-${index}`} map={map} position={marker.position} L={L} />
+            <SkullMarker key={`skull-${marker.startTime}-${index}`} map={map} position={marker.position} L={L} />
           ))}
         </>
       )}
