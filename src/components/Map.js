@@ -9,6 +9,7 @@ import ControlPanel from "./ControlPanel.js"
 import TimeControl from "./TimeControl.js"
 import LeafletCSS from "./LeafletCSS.js"
 import { BASE_PATH } from "../utils/constants.js"
+import { teamColors, getTeamColor } from "../utils/teamColors.js"
 
 const Map = ({ initialMatchData }) => {
   if (!initialMatchData) {
@@ -20,10 +21,13 @@ const Map = ({ initialMatchData }) => {
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentPlayerData, setCurrentPlayerData] = useState([])
-  const [maxTime, setMaxTime] = useState(60 * 1000) // デフォルト値を60秒に設定
+  const [maxTime, setMaxTime] = useState(60 * 1000)
   const [skullMarkers, setSkullMarkers] = useState([])
   const [isClient, setIsClient] = useState(false)
   const [L, setL] = useState(null)
+  const [showTeams0And1, setShowTeams0And1] = useState(false)
+  const [customTeamColors, setCustomTeamColors] = useState(teamColors)
+  const [ringEvents, setRingEvents] = useState([])
 
   const timerRef = useRef(null)
 
@@ -54,14 +58,18 @@ const Map = ({ initialMatchData }) => {
   }
 
   const handleJSONUpload = (newMatchData) => {
-    // Reset the map state
     setCurrentTime(0)
     setIsPlaying(false)
     setCurrentPlayerData([])
     setSkullMarkers([])
-
-    // Update the match data
     setMatchData(newMatchData)
+  }
+
+  const handleSettingsChange = (newSettings) => {
+    setShowTeams0And1(newSettings.showTeams0And1)
+    if (newSettings.customTeamColors) {
+      setCustomTeamColors(newSettings.customTeamColors)
+    }
   }
 
   useEffect(() => {
@@ -132,13 +140,36 @@ const Map = ({ initialMatchData }) => {
     }
   }, [currentTime, matchData])
 
+  useEffect(() => {
+    if (matchData && matchData.packetLists) {
+      const events = []
+      Object.entries(matchData.packetLists).forEach(([time, packet]) => {
+        if (packet.events) {
+          packet.events.forEach((event) => {
+            if (event.type === "ringStartClosing") {
+              events.push({
+                time: packet.t * 1000,
+                type: event.type,
+                stage: event.stage,
+              })
+            }
+          })
+        }
+      })
+      setRingEvents(events)
+      setMaxTime(Math.max(...events.map((e) => e.time), maxTime))
+    }
+  }, [matchData])
+
   const updateCircle = (newOptions) => {
     setCircleOptions((prevOptions) => ({ ...prevOptions, ...newOptions }))
   }
 
-  const updateTime = (newTime) => {
+  const updateTime = (newTime, recreateState = false) => {
     setCurrentTime(newTime)
-    processEventsUpToTime(newTime)
+    if (recreateState) {
+      processEventsUpToTime(newTime)
+    }
   }
 
   const processEventsUpToTime = (targetTime) => {
@@ -230,7 +261,7 @@ const Map = ({ initialMatchData }) => {
   }
 
   const getCurrentPlayerData = () => {
-    return currentPlayerData
+    return currentPlayerData.filter((player) => showTeams0And1 || (player.teamId !== 0 && player.teamId !== 1))
   }
 
   const getCurrentRingData = () => {
@@ -257,6 +288,10 @@ const Map = ({ initialMatchData }) => {
               teams={matchData.teams}
               currentPlayerData={currentPlayerData}
               onJSONUpload={handleJSONUpload}
+              onSettingsChange={handleSettingsChange}
+              showTeams0And1={showTeams0And1}
+              customTeamColors={customTeamColors}
+              ringEvents={ringEvents}
             />
           </div>
         </div>
@@ -269,6 +304,7 @@ const Map = ({ initialMatchData }) => {
         play={play}
         pause={pause}
         stop={stop}
+        ringEvents={ringEvents}
       />
       {isClient && <LeafletCSS />}
       {map && L && (
@@ -281,7 +317,7 @@ const Map = ({ initialMatchData }) => {
                 key={player.nucleusHash}
                 map={map}
                 player={player}
-                color={teamId === 1 ? "#0000FF" : "#00FF00"}
+                color={getTeamColor(player.teamId)}
                 L={L}
               />
             )
