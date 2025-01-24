@@ -23,7 +23,7 @@ const CustomCircle = ({ map, options, L }) => {
       }
 
       const outerCenter = [0, 0]
-      const outerRadius = 4000
+      const outerRadius = 10000
       const innerCenter = options.center
       const innerRadius = options.radius
 
