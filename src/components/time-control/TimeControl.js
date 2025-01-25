@@ -3,9 +3,28 @@
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PlayIcon, PauseIcon, MonitorStopIcon as StopIcon, CircleDot, CircleOff, Skull } from "lucide-react"
+import {
+  PlayIcon,
+  PauseIcon,
+  MonitorStopIcon as StopIcon,
+  CircleDot,
+  CircleOff,
+  Skull,
+  X,
+  RotateCcw,
+} from "lucide-react"
 
-const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause, stop, timelineEvents = [] }) => {
+const TimeControl = ({
+  updateTime,
+  currentTime,
+  maxTime,
+  isPlaying,
+  play,
+  pause,
+  stop,
+  timelineEvents = [],
+  reset,
+}) => {
   const handleTimeChange = (value) => {
     updateTime(value[0], true)
   }
@@ -14,14 +33,16 @@ const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause,
     updateTime(time, true)
   }
 
-  const getEventIcon = (eventType) => {
-    switch (eventType) {
+  const getEventIcon = (event) => {
+    switch (event.type) {
       case "ringStartClosing":
         return <CircleDot className="h-4 w-4 text-blue-500" />
       case "ringFinishedClosing":
         return <CircleOff className="h-4 w-4 text-red-500" />
       case "playerKilled":
         return <Skull className="h-4 w-4 text-gray-500" />
+      case "squadEliminated":
+        return <X className="h-4 w-4" style={{ color: event.color }} />
       default:
         return null
     }
@@ -51,7 +72,7 @@ const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause,
                 style={{ left: `${(event.time / maxTime) * 100}%` }}
                 onClick={() => handlePinClick(event.time)}
               >
-                {getEventIcon(event.type)}
+                {getEventIcon(event)}
               </Button>
             ))}
         </div>
@@ -70,6 +91,9 @@ const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause,
         </Button>
         <Button type="button" onClick={stop} className="p-2">
           <StopIcon className="h-6 w-6" />
+        </Button>
+        <Button type="button" onClick={reset} className="p-2">
+          <RotateCcw className="h-6 w-6" />
         </Button>
       </div>
     </div>

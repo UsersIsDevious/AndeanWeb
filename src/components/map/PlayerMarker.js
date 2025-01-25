@@ -7,6 +7,10 @@ const PlayerMarker = ({ map, player, color, L }) => {
 
   useEffect(() => {
     if (map && player && player.hp[0] > 0) {
+      if (!player.pos || player.pos[0] === undefined || player.pos[1] === undefined) {
+        console.warn(`Invalid coordinates for player ${player.id}:`, player.pos)
+        return
+      }
       if (markerRef.current) {
         markerRef.current.remove()
       }

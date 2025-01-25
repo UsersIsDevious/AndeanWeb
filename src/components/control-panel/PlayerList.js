@@ -1,9 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp, Shield, Skull, Zap, X } from "lucide-react"
 import Image from "next/image"
-import { Shield, Skull, Zap, X } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { BASE_PATH } from "../../utils/constants.js"
 import { getTeamColor } from "../../utils/teamColors.js"
@@ -37,7 +36,7 @@ const legendIcons = {
   Ballistic: "/img/legends/ballistic.png",
 }
 
-const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customTeamColors = [] }) => {
+const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customTeamColors = [], eliminatedTeams }) => {
   if (!players || !teams || !currentPlayerData || Object.keys(teams).length === 0) {
     return <div>No player data available.</div>
   }
@@ -70,13 +69,20 @@ const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customT
           <button className="w-full flex justify-between items-center" onClick={() => toggleTeam(teamId)}>
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: getTeamColor(teamId) }}></div>
-              <Image
-                src={team.teamImg || `${BASE_PATH}/placeholder.svg`}
-                alt={team.teamName}
-                width={24}
-                height={24}
-                className="mr-2"
-              />
+              <div className="relative">
+                <Image
+                  src={team.teamImg || `${BASE_PATH}/placeholder.svg`}
+                  alt={team.teamName}
+                  width={24}
+                  height={24}
+                  className="mr-2"
+                />
+                {eliminatedTeams.includes(teamId) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <X className="text-red-500" size={20} />
+                  </div>
+                )}
+              </div>
               <span>{team.teamName}</span>
             </div>
             {expandedTeams.includes(teamId) ? <ChevronUp /> : <ChevronDown />}

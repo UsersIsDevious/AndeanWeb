@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { BASE_PATH } from "../utils/constants"
 import { teamColors, getTeamColor } from "../utils/teamColors"
 
@@ -16,7 +16,15 @@ const useMapLogic = (initialMatchData) => {
   const [showTeams0And1, setShowTeams0And1] = useState(false)
   const [customTeamColors, setCustomTeamColors] = useState(teamColors)
   const [ringEvents, setRingEvents] = useState([])
-  const [timelineEvents, setTimelineEvents] = useState([]) // Added state for timelineEvents
+  const [timelineEvents, setTimelineEvents] = useState([])
+  const [eliminatedTeams, setEliminatedTeams] = useState([])
+  const [firstRingEventTime, setFirstRingEventTime] = useState(null)
+  const [playerTrails, setPlayerTrails] = useState({})
+  const [showPlayerMarkers, setShowPlayerMarkers] = useState(true)
+  const [showPlayerTrails, setShowPlayerTrails] = useState(true)
+  const [showSkullMarkers, setShowSkullMarkers] = useState(true)
+  const [showRingEvents, setShowRingEvents] = useState(true)
+  const [showTeamEliminationEvents, setShowTeamEliminationEvents] = useState(true)
 
   const timerRef = useRef(null)
 
@@ -86,30 +94,41 @@ const useMapLogic = (initialMatchData) => {
 
       processEventsUpToTime(currentTime)
     }
-  }, [currentTime, matchData, maxTime]) // Added maxTime to dependencies
+  }, [currentTime, matchData]) // Removed maxTime from dependencies
 
   useEffect(() => {
     if (matchData && matchData.packetLists) {
       const events = []
+      let firstRingTime = null
       Object.entries(matchData.packetLists).forEach(([time, packet]) => {
         if (packet.events) {
           packet.events.forEach((event) => {
             if (
               event.type === "ringStartClosing" ||
               event.type === "ringFinishedClosing" ||
-              event.type === "playerKilled"
+              event.type === "playerKilled" ||
+              event.type === "squadEliminated"
             ) {
+              if (event.type === "ringStartClosing" && firstRingTime === null) {
+                firstRingTime = packet.t * 1000
+              }
               events.push({
                 time: packet.t * 1000,
                 type: event.type,
                 stage: event.stage,
+                teamId: event.teamId,
+                color: event.type === "squadEliminated" ? getTeamColor(event.teamId) : undefined,
               })
             }
           })
         }
       })
       setTimelineEvents(events)
+      setFirstRingEventTime(firstRingTime)
       setMaxTime(Math.max(...events.map((e) => e.time), maxTime))
+
+      processEventsUpToTime(Math.max(...events.map((e) => e.time)))
+      resetRingState()
     }
   }, [matchData])
 
@@ -136,7 +155,7 @@ const useMapLogic = (initialMatchData) => {
   const stop = () => {
     setIsPlaying(false)
     if (timerRef.current) clearInterval(timerRef.current)
-    setCurrentTime(0)
+    updateTime(0, true)
   }
 
   const handleJSONUpload = (newMatchData) => {
@@ -160,8 +179,11 @@ const useMapLogic = (initialMatchData) => {
 
   const updateTime = (newTime, recreateState = false) => {
     setCurrentTime(newTime)
-    if (recreateState) {
+    if (recreateState || newTime === 0) {
       processEventsUpToTime(newTime)
+      if (newTime === 0) {
+        resetRingState()
+      }
     }
   }
 
@@ -178,6 +200,8 @@ const useMapLogic = (initialMatchData) => {
 
     let currentCircleOptions = null
     const newSkullMarkers = []
+    const newEliminatedTeams = []
+    const newPlayerTrails = {}
 
     Object.entries(matchData.packetLists).forEach(([time, packet]) => {
       if (packet.t * 1000 <= targetTime) {
@@ -189,6 +213,11 @@ const useMapLogic = (initialMatchData) => {
               ...playerUpdate,
               pos: playerUpdate.pos || updatedPlayerData[playerIndex].pos,
             }
+
+            if (!newPlayerTrails[playerUpdate.id]) {
+              newPlayerTrails[playerUpdate.id] = []
+            }
+            newPlayerTrails[playerUpdate.id].push(playerUpdate.pos)
           }
         })
 
@@ -248,6 +277,9 @@ const useMapLogic = (initialMatchData) => {
                   endTime: packet.t * 1000 + 5000,
                 })
                 break
+              case "squadEliminated":
+                newEliminatedTeams.push(event.teamId)
+                break
             }
           })
         }
@@ -259,6 +291,23 @@ const useMapLogic = (initialMatchData) => {
       setCircleOptions(currentCircleOptions)
     }
     setSkullMarkers(newSkullMarkers.filter((marker) => marker.startTime <= targetTime && marker.endTime > targetTime))
+    setEliminatedTeams(newEliminatedTeams)
+    setPlayerTrails(newPlayerTrails)
+  }
+
+  const resetRingState = () => {
+    setCircleOptions(null)
+    setCurrentPlayerData(
+      Object.values(matchData.players).map((player) => ({
+        ...player,
+        hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
+        pos: [player.pos.x, player.pos.y, player.pos.z],
+        kills: { total: 0 },
+        damageDealt: { total: 0 },
+      })),
+    )
+    setSkullMarkers([])
+    setEliminatedTeams([])
   }
 
   const getCurrentPlayerData = () => {
@@ -266,7 +315,7 @@ const useMapLogic = (initialMatchData) => {
   }
 
   const getCurrentRingData = () => {
-    if (!circleOptions) return null
+    if (!circleOptions || firstRingEventTime === null || currentTime < firstRingEventTime) return null
 
     const progress = Math.min(
       1,
@@ -290,6 +339,23 @@ const useMapLogic = (initialMatchData) => {
     }
   }
 
+  const survivingPlayers = useMemo(() => {
+    return currentPlayerData.filter((player) => player.hp && player.hp[0] > 0).length
+  }, [currentPlayerData])
+
+  const survivingTeams = useMemo(() => {
+    const teamIds = new Set(
+      currentPlayerData.filter((player) => player.hp && player.hp[0] > 0).map((player) => player.teamId),
+    )
+    return teamIds.size
+  }, [currentPlayerData])
+
+  const togglePlayerMarkers = () => setShowPlayerMarkers((prev) => !prev)
+  const togglePlayerTrails = () => setShowPlayerTrails((prev) => !prev)
+  const toggleSkullMarkers = () => setShowSkullMarkers((prev) => !prev)
+  const toggleRingEvents = () => setShowRingEvents((prev) => !prev)
+  const toggleTeamEliminationEvents = () => setShowTeamEliminationEvents((prev) => !prev)
+
   return {
     matchData,
     map,
@@ -304,7 +370,11 @@ const useMapLogic = (initialMatchData) => {
     showTeams0And1,
     customTeamColors,
     ringEvents,
-    timelineEvents, // Added timelineEvents to the returned object
+    timelineEvents,
+    eliminatedTeams,
+    firstRingEventTime,
+    survivingPlayers,
+    survivingTeams,
     play,
     pause,
     stop,
@@ -314,6 +384,18 @@ const useMapLogic = (initialMatchData) => {
     updateTime,
     getCurrentPlayerData,
     getCurrentRingData,
+    resetRingState,
+    playerTrails,
+    showPlayerMarkers,
+    showPlayerTrails,
+    showSkullMarkers,
+    showRingEvents,
+    showTeamEliminationEvents,
+    togglePlayerMarkers,
+    togglePlayerTrails,
+    toggleSkullMarkers,
+    toggleRingEvents,
+    toggleTeamEliminationEvents,
   }
 }
 

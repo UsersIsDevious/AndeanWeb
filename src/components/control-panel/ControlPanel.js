@@ -16,6 +16,7 @@ const ControlPanel = ({
   showTeams0And1,
   customTeamColors,
   ringEvents,
+  eliminatedTeams,
 }) => {
   const [showSettings, setShowSettings] = useState(false)
 
@@ -39,6 +40,7 @@ const ControlPanel = ({
         currentPlayerData={currentPlayerData}
         showTeams0And1={showTeams0And1}
         customTeamColors={customTeamColors}
+        eliminatedTeams={eliminatedTeams}
       />
     </div>
   )

@@ -4,9 +4,12 @@ import Image from "next/image"
 import { useEffect, useState, useRef } from "react"
 import CustomCircle from "./map/CustomCircle"
 import PlayerMarker from "./map/PlayerMarker"
+import PlayerTrail from "./map/PlayerTrail"
 import SkullMarker from "./map/SkullMarker"
+import MapControlPanel from "./map/MapControlPanel"
 import ControlPanel from "./control-panel/ControlPanel"
 import TimeControl from "./time-control/TimeControl"
+import SurvivorsCounter from "./SurvivorsCounter"
 import LeafletCSS from "./LeafletCSS"
 import { BASE_PATH } from "../utils/constants"
 import { teamColors, getTeamColor } from "../utils/teamColors"
@@ -36,6 +39,22 @@ const Map = ({ initialMatchData }) => {
     updateTime,
     getCurrentPlayerData,
     getCurrentRingData,
+    eliminatedTeams,
+    survivingPlayers,
+    survivingTeams,
+    resetRingState,
+    firstRingEventTime,
+    playerTrails,
+    showPlayerMarkers,
+    showPlayerTrails,
+    showSkullMarkers,
+    showRingEvents,
+    showTeamEliminationEvents,
+    togglePlayerMarkers,
+    togglePlayerTrails,
+    toggleSkullMarkers,
+    toggleRingEvents,
+    toggleTeamEliminationEvents,
   } = useMapLogic(initialMatchData)
 
   if (!initialMatchData) {
@@ -45,7 +64,21 @@ const Map = ({ initialMatchData }) => {
   return (
     <div className="h-screen flex flex-col">
       <div className="flex-grow flex overflow-hidden">
-        <div id="map" className="w-3/4 h-full"></div>
+        <div id="map" className="w-3/4 h-full relative">
+          <SurvivorsCounter survivingPlayers={survivingPlayers} survivingTeams={survivingTeams} />
+          <MapControlPanel
+            showPlayerMarkers={showPlayerMarkers}
+            showPlayerTrails={showPlayerTrails}
+            showSkullMarkers={showSkullMarkers}
+            showRingEvents={showRingEvents}
+            showTeamEliminationEvents={showTeamEliminationEvents}
+            togglePlayerMarkers={togglePlayerMarkers}
+            togglePlayerTrails={togglePlayerTrails}
+            toggleSkullMarkers={toggleSkullMarkers}
+            toggleRingEvents={toggleRingEvents}
+            toggleTeamEliminationEvents={toggleTeamEliminationEvents}
+          />
+        </div>
         <div className="w-1/4 h-full flex flex-col">
           <div className="flex-grow overflow-y-auto">
             <ControlPanel
@@ -58,6 +91,7 @@ const Map = ({ initialMatchData }) => {
               showTeams0And1={showTeams0And1}
               customTeamColors={customTeamColors}
               ringEvents={timelineEvents}
+              eliminatedTeams={eliminatedTeams}
             />
           </div>
         </div>
@@ -71,31 +105,46 @@ const Map = ({ initialMatchData }) => {
         pause={pause}
         stop={stop}
         timelineEvents={timelineEvents}
+        reset={stop}
       />
       {isClient && <LeafletCSS />}
       {map && L && (
         <>
-          <CustomCircle
-            map={map}
-            options={{
-              center: getCurrentRingData()?.center || [0, 0],
-              radius: getCurrentRingData()?.radius || 4000,
-              color: getCurrentRingData()?.color || "#ff0000",
-            }}
-            L={L}
-          />
-          {getCurrentPlayerData().map((player) => (
-            <PlayerMarker
-              key={player.nucleusHash}
+          {showRingEvents && getCurrentRingData() && currentTime >= firstRingEventTime && (
+            <CustomCircle
               map={map}
-              player={player}
-              color={getTeamColor(player.teamId)}
+              options={{
+                center: getCurrentRingData().center || [0, 0],
+                radius: getCurrentRingData().radius || 4000,
+                color: getCurrentRingData().color || "#ff0000",
+              }}
               L={L}
             />
-          ))}
-          {skullMarkers.map((marker, index) => (
-            <SkullMarker key={`skull-${marker.startTime}-${index}`} map={map} position={marker.position} L={L} />
-          ))}
+          )}
+          {showPlayerMarkers &&
+            getCurrentPlayerData().map((player) => (
+              <PlayerMarker
+                key={player.nucleusHash}
+                map={map}
+                player={player}
+                color={getTeamColor(player.teamId)}
+                L={L}
+              />
+            ))}
+          {showPlayerTrails &&
+            Object.entries(playerTrails).map(([playerId, positions]) => (
+              <PlayerTrail
+                key={`trail-${playerId}`}
+                map={map}
+                positions={positions}
+                color={getTeamColor(matchData.players[playerId].teamId)}
+                L={L}
+              />
+            ))}
+          {showSkullMarkers &&
+            skullMarkers.map((marker, index) => (
+              <SkullMarker key={`skull-${marker.startTime}-${index}`} map={map} position={marker.position} L={L} />
+            ))}
         </>
       )}
     </div>
