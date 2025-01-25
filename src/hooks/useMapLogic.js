@@ -16,6 +16,7 @@ const useMapLogic = (initialMatchData) => {
   const [showTeams0And1, setShowTeams0And1] = useState(false)
   const [customTeamColors, setCustomTeamColors] = useState(teamColors)
   const [ringEvents, setRingEvents] = useState([])
+  const [timelineEvents, setTimelineEvents] = useState([]) // Added state for timelineEvents
 
   const timerRef = useRef(null)
 
@@ -93,7 +94,11 @@ const useMapLogic = (initialMatchData) => {
       Object.entries(matchData.packetLists).forEach(([time, packet]) => {
         if (packet.events) {
           packet.events.forEach((event) => {
-            if (event.type === "ringStartClosing") {
+            if (
+              event.type === "ringStartClosing" ||
+              event.type === "ringFinishedClosing" ||
+              event.type === "playerKilled"
+            ) {
               events.push({
                 time: packet.t * 1000,
                 type: event.type,
@@ -103,7 +108,7 @@ const useMapLogic = (initialMatchData) => {
           })
         }
       })
-      setRingEvents(events)
+      setTimelineEvents(events)
       setMaxTime(Math.max(...events.map((e) => e.time), maxTime))
     }
   }, [matchData])
@@ -191,8 +196,14 @@ const useMapLogic = (initialMatchData) => {
           packet.events.forEach((event) => {
             switch (event.type) {
               case "ringStartClosing":
+                if (!currentCircleOptions) {
+                  currentCircleOptions = {
+                    center: event.center,
+                  }
+                }
                 currentCircleOptions = {
-                  center: event.center,
+                  ...currentCircleOptions,
+                  endCenter: event.center,
                   startRadius: event.currentradius,
                   endRadius: event.endradius,
                   color: circleOptions ? circleOptions.color : "#ff0000",
@@ -206,6 +217,8 @@ const useMapLogic = (initialMatchData) => {
                     ...currentCircleOptions,
                     startRadius: event.currentradius,
                     endRadius: event.currentradius,
+                    startCenter: event.center,
+                    center: event.center,
                   }
                 }
                 break
@@ -260,10 +273,20 @@ const useMapLogic = (initialMatchData) => {
       Math.max(0, (currentTime - circleOptions.startTime) / (circleOptions.endTime - circleOptions.startTime)),
     )
     const currentRadius = circleOptions.startRadius + (circleOptions.endRadius - circleOptions.startRadius) * progress
-
-    return {
-      ...circleOptions,
-      radius: currentRadius,
+    if (!circleOptions.startCenter || !circleOptions.endCenter) {
+      return {
+        ...circleOptions,
+        radius: currentRadius,
+      }
+    } else {
+      const dx = circleOptions.startCenter[0] + (circleOptions.endCenter[0] - circleOptions.startCenter[0]) * progress
+      const dy = circleOptions.startCenter[1] + (circleOptions.endCenter[1] - circleOptions.startCenter[1]) * progress
+      const dz = circleOptions.startCenter[2] + (circleOptions.endCenter[2] - circleOptions.startCenter[2]) * progress
+      return {
+        ...circleOptions,
+        radius: currentRadius,
+        center: [dx, dy, dz],
+      }
     }
   }
 
@@ -281,6 +304,7 @@ const useMapLogic = (initialMatchData) => {
     showTeams0And1,
     customTeamColors,
     ringEvents,
+    timelineEvents, // Added timelineEvents to the returned object
     play,
     pause,
     stop,

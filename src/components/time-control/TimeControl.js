@@ -3,15 +3,28 @@
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PlayIcon, PauseIcon, MonitorStopIcon as StopIcon, MapPin } from "lucide-react"
+import { PlayIcon, PauseIcon, MonitorStopIcon as StopIcon, CircleDot, CircleOff, Skull } from "lucide-react"
 
-const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause, stop, ringEvents }) => {
+const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause, stop, timelineEvents = [] }) => {
   const handleTimeChange = (value) => {
     updateTime(value[0], true)
   }
 
   const handlePinClick = (time) => {
     updateTime(time, true)
+  }
+
+  const getEventIcon = (eventType) => {
+    switch (eventType) {
+      case "ringStartClosing":
+        return <CircleDot className="h-4 w-4 text-blue-500" />
+      case "ringFinishedClosing":
+        return <CircleOff className="h-4 w-4 text-red-500" />
+      case "playerKilled":
+        return <Skull className="h-4 w-4 text-gray-500" />
+      default:
+        return null
+    }
   }
 
   return (
@@ -28,18 +41,19 @@ const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause,
           className="mt-2"
         />
         <div className="absolute top-0 left-0 right-0">
-          {ringEvents.map((event, index) => (
-            <Button
-              key={index}
-              variant="ghost"
-              size="sm"
-              className="p-0 h-auto absolute transform -translate-y-full"
-              style={{ left: `${(event.time / maxTime) * 100}%` }}
-              onClick={() => handlePinClick(event.time)}
-            >
-              <MapPin className="h-4 w-4 text-red-500" />
-            </Button>
-          ))}
+          {timelineEvents &&
+            timelineEvents.map((event, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="sm"
+                className="p-0 h-auto absolute transform -translate-y-full"
+                style={{ left: `${(event.time / maxTime) * 100}%` }}
+                onClick={() => handlePinClick(event.time)}
+              >
+                {getEventIcon(event.type)}
+              </Button>
+            ))}
         </div>
       </div>
       <div className="text-center">

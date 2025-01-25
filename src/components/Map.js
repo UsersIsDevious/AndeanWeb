@@ -26,7 +26,7 @@ const Map = ({ initialMatchData }) => {
     L,
     showTeams0And1,
     customTeamColors,
-    ringEvents,
+    timelineEvents,
     play,
     pause,
     stop,
@@ -57,7 +57,7 @@ const Map = ({ initialMatchData }) => {
               onSettingsChange={handleSettingsChange}
               showTeams0And1={showTeams0And1}
               customTeamColors={customTeamColors}
-              ringEvents={ringEvents}
+              ringEvents={timelineEvents}
             />
           </div>
         </div>
@@ -70,7 +70,7 @@ const Map = ({ initialMatchData }) => {
         play={play}
         pause={pause}
         stop={stop}
-        ringEvents={ringEvents}
+        timelineEvents={timelineEvents}
       />
       {isClient && <LeafletCSS />}
       {map && L && (
