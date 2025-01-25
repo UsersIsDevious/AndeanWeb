@@ -191,8 +191,14 @@ const useMapLogic = (initialMatchData) => {
           packet.events.forEach((event) => {
             switch (event.type) {
               case "ringStartClosing":
+                if (!currentCircleOptions) {
+                  currentCircleOptions = {
+                    center: event.center
+                  }
+                }
                 currentCircleOptions = {
-                  center: event.center,
+                  ...currentCircleOptions,
+                  endCenter: event.center,
                   startRadius: event.currentradius,
                   endRadius: event.endradius,
                   color: circleOptions ? circleOptions.color : "#ff0000",
@@ -206,6 +212,8 @@ const useMapLogic = (initialMatchData) => {
                     ...currentCircleOptions,
                     startRadius: event.currentradius,
                     endRadius: event.currentradius,
+                    startCenter: event.center,
+                    center: event.center,
                   }
                 }
                 break
@@ -260,10 +268,20 @@ const useMapLogic = (initialMatchData) => {
       Math.max(0, (currentTime - circleOptions.startTime) / (circleOptions.endTime - circleOptions.startTime)),
     )
     const currentRadius = circleOptions.startRadius + (circleOptions.endRadius - circleOptions.startRadius) * progress
-
-    return {
-      ...circleOptions,
-      radius: currentRadius,
+    if (!circleOptions.startCenter || !circleOptions.endCenter) {
+      return {
+        ...circleOptions,
+        radius: currentRadius,
+      }
+    } else {
+      const dx = circleOptions.startCenter[0] + (circleOptions.endCenter[0] - circleOptions.startCenter[0]) * progress
+      const dy = circleOptions.startCenter[1] + (circleOptions.endCenter[1] - circleOptions.startCenter[1]) * progress
+      const dz = circleOptions.startCenter[2] + (circleOptions.endCenter[2] - circleOptions.startCenter[2]) * progress
+      return {
+        ...circleOptions,
+        radius: currentRadius,
+        center: [dx, dy, dz],
+      }
     }
   }
 
