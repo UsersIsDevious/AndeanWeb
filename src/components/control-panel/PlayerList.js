@@ -5,8 +5,8 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import Image from "next/image"
 import { Shield, Skull, Zap, X } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { BASE_PATH } from "../utils/constants.js"
-import { getTeamColor } from "../utils/teamColors.js"
+import { BASE_PATH } from "../../utils/constants.js"
+import { getTeamColor } from "../../utils/teamColors.js"
 
 const legendIcons = {
   Bloodhound: "/img/legends/bloodhound.png",

@@ -3,8 +3,7 @@
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PlayIcon, PauseIcon, MonitorStopIcon as StopIcon } from "lucide-react"
-import { MapPin } from "lucide-react"
+import { PlayIcon, PauseIcon, MonitorStopIcon as StopIcon, MapPin } from "lucide-react"
 
 const TimeControl = ({ updateTime, currentTime, maxTime, isPlaying, play, pause, stop, ringEvents }) => {
   const handleTimeChange = (value) => {

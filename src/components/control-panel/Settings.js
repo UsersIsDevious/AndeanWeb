@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SettingsIcon, Upload, Send, Palette } from "lucide-react"
-import { teamColors } from "../utils/teamColors.js"
+import { teamColors } from "../../utils/teamColors.js"
 
 const Settings = ({ updateCircle, onJSONUpload, onSettingsChange }) => {
   const [color, setColor] = useState("#ff0000")

@@ -23,7 +23,7 @@ const CustomCircle = ({ map, options, L }) => {
       }
 
       const outerCenter = [0, 0]
-      const outerRadius = 10000
+      const outerRadius = 4000 // Set this to the maximum map radius
       const innerCenter = options.center
       const innerRadius = options.radius
 
@@ -43,7 +43,7 @@ const CustomCircle = ({ map, options, L }) => {
         polygonRef.current.remove()
       }
     }
-  }, [map, options, L])
+  }, [map, options, L, createCirclePoints]) // Added createCirclePoints to dependencies
 
   return null
 }
