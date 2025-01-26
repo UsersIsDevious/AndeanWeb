@@ -1,66 +1,20 @@
 import React from "react"
-import { Button } from "@/components/ui/button"
-import { User, MapIcon, Skull, CircleDot, Users, EyeOff, Eye } from "lucide-react"
+import { Users, UserCheck } from "lucide-react"
 
-const MapControlPanel = ({
-  showPlayerMarkers,
-  showPlayerTrails,
-  showSkullMarkers,
-  showRingEvents,
-  showTeamEliminationEvents,
-  togglePlayerMarkers,
-  togglePlayerTrails,
-  toggleSkullMarkers,
-  toggleRingEvents,
-  toggleTeamEliminationEvents,
-}) => {
+const SurvivorsCounter = ({ survivingPlayers, survivingTeams }) => {
   return (
-    <div className="absolute top-4 left-4 bg-white bg-opacity-80 p-2 rounded-md shadow-md">
-      <div className="flex flex-col space-y-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={togglePlayerMarkers}
-          title={showPlayerMarkers ? "Hide Player Markers" : "Show Player Markers"}
-        >
-          {showPlayerMarkers ? <User /> : <EyeOff />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={togglePlayerTrails}
-          title={showPlayerTrails ? "Hide Player Trails" : "Show Player Trails"}
-        >
-          {showPlayerTrails ? <MapIcon /> : <EyeOff />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSkullMarkers}
-          title={showSkullMarkers ? "Hide Skull Markers" : "Show Skull Markers"}
-        >
-          {showSkullMarkers ? <Skull /> : <EyeOff />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleRingEvents}
-          title={showRingEvents ? "Hide Ring Events" : "Show Ring Events"}
-        >
-          {showRingEvents ? <CircleDot /> : <EyeOff />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTeamEliminationEvents}
-          title={showTeamEliminationEvents ? "Hide Team Elimination Events" : "Show Team Elimination Events"}
-        >
-          {showTeamEliminationEvents ? <Users /> : <EyeOff />}
-        </Button>
+    <div className="absolute top-4 right-4 bg-white bg-opacity-80 p-2 rounded-md shadow-md flex items-center space-x-4 z-[9999]">
+      <div className="flex items-center space-x-2">
+        <Users size={18} />
+        <span className="font-semibold">{survivingPlayers} players</span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <UserCheck size={18} />
+        <span className="font-semibold">{survivingTeams} teams</span>
       </div>
     </div>
   )
 }
 
-export default MapControlPanel
+export default SurvivorsCounter
 

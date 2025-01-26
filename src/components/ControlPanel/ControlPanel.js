@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { SettingsIcon } from "lucide-react"
@@ -17,6 +15,8 @@ const ControlPanel = ({
   customTeamColors,
   ringEvents,
   eliminatedTeams,
+  playerTrailVisibility,
+  togglePlayerTrail,
 }) => {
   const [showSettings, setShowSettings] = useState(false)
 
@@ -41,6 +41,8 @@ const ControlPanel = ({
         showTeams0And1={showTeams0And1}
         customTeamColors={customTeamColors}
         eliminatedTeams={eliminatedTeams}
+        playerTrailVisibility={playerTrailVisibility}
+        togglePlayerTrail={togglePlayerTrail}
       />
     </div>
   )

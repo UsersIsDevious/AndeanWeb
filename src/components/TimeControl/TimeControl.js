@@ -24,6 +24,7 @@ const TimeControl = ({
   stop,
   timelineEvents = [],
   reset,
+  nearestPacketTime,
 }) => {
   const handleTimeChange = (value) => {
     updateTime(value[0], true)
@@ -80,7 +81,7 @@ const TimeControl = ({
       <div className="text-center">
         {(currentTime / 1000).toFixed(3)}s / {(maxTime / 1000).toFixed(3)}s (
         {((currentTime / maxTime) * 100).toFixed(2)}
-        %)
+        %) - Packet t: {nearestPacketTime !== null ? nearestPacketTime.toFixed(3) : "N/A"}
       </div>
       <div className="flex justify-center space-x-2">
         <Button type="button" onClick={play} disabled={isPlaying} className="p-2">
@@ -91,9 +92,6 @@ const TimeControl = ({
         </Button>
         <Button type="button" onClick={stop} className="p-2">
           <StopIcon className="h-6 w-6" />
-        </Button>
-        <Button type="button" onClick={reset} className="p-2">
-          <RotateCcw className="h-6 w-6" />
         </Button>
       </div>
     </div>

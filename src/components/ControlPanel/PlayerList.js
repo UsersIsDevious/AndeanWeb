@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronDown, ChevronUp, Shield, Skull, Zap, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronDown, ChevronUp, Skull, Zap, X, MapPin, User, UserMinus } from "lucide-react"
 import Image from "next/image"
 import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
 import { BASE_PATH } from "../../utils/constants.js"
 import { getTeamColor } from "../../utils/teamColors.js"
 
@@ -36,12 +37,23 @@ const legendIcons = {
   Ballistic: "/img/legends/ballistic.png",
 }
 
-const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customTeamColors = [], eliminatedTeams }) => {
-  if (!players || !teams || !currentPlayerData || Object.keys(teams).length === 0) {
-    return <div>No player data available.</div>
-  }
+const PlayerList = ({
+  players,
+  teams,
+  currentPlayerData,
+  showTeams0And1,
+  customTeamColors = [],
+  eliminatedTeams,
+  playerTrailVisibility = {},
+  togglePlayerTrail = () => {},
+}) => {
   const [expandedTeams, setExpandedTeams] = useState([])
   const [expandedPlayers, setExpandedPlayers] = useState([])
+
+  useEffect(() => {
+    // Initialize expandedTeams and expandedPlayers if needed.
+    // This is a placeholder, adjust as needed based on your application logic.
+  }, [])
 
   const toggleTeam = (teamId) => {
     setExpandedTeams((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]))
@@ -57,9 +69,21 @@ const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customT
     return { ...staticData, ...currentData }
   }
 
+  const getPlayerStatValue = (player, statKey) => {
+    if (typeof player[statKey] === "object" && player[statKey] !== null) {
+      return player[statKey].total || 0
+    }
+    return player[statKey] || 0
+  }
+
   const filteredTeams = Object.entries(teams || {}).filter(
-    ([teamId, team]) => showTeams0And1 || (teamId !== "0" && teamId !== "1"),
+    ([teamId, team]) =>
+      (showTeams0And1 || (teamId !== "0" && teamId !== "1")) && team.players && team.players.length > 0,
   )
+
+  if (!players || !teams || !currentPlayerData || Object.keys(teams).length === 0) {
+    return <div>No player data available.</div>
+  }
 
   return (
     <div className="space-y-4 mt-4">
@@ -83,7 +107,7 @@ const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customT
                   </div>
                 )}
               </div>
-              <span>{team.teamName}</span>
+              <span>{team.teamName || `Team ${teamId}`}</span>
             </div>
             {expandedTeams.includes(teamId) ? <ChevronUp /> : <ChevronDown />}
           </button>
@@ -91,51 +115,76 @@ const PlayerList = ({ players, teams, currentPlayerData, showTeams0And1, customT
             <div className="mt-2 space-y-2">
               {(team.players || []).map((playerId) => {
                 const player = getPlayerData(playerId)
+                if (!player) return null
                 const isDead = player.hp && player.hp[0] <= 0
                 return (
                   <div key={playerId} className="pl-4">
-                    <button className="w-full flex justify-between items-center" onClick={() => togglePlayer(playerId)}>
-                      <div className="flex items-center">
-                        {legendIcons[player.legend] && (
-                          <div className="w-6 h-6 rounded-full overflow-hidden mr-2 relative">
-                            <Image
-                              src={`${BASE_PATH}${legendIcons[player.legend] || "/placeholder.svg"}`}
-                              alt={player.legend}
-                              width={24}
-                              height={24}
-                              className="object-cover"
-                            />
-                            {isDead && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                                <X className="text-red-500" size={20} />
-                              </div>
-                            )}
-                          </div>
+                    <div className="flex justify-between items-center">
+                      <button className="flex items-center" onClick={() => togglePlayer(playerId)}>
+                        <div className="flex items-center">
+                          {legendIcons[player.legend] && (
+                            <div className="w-6 h-6 rounded-full overflow-hidden mr-2 relative">
+                              <Image
+                                src={`${BASE_PATH}${legendIcons[player.legend] || "/placeholder.svg"}`}
+                                alt={player.legend}
+                                width={24}
+                                height={24}
+                                className="object-cover"
+                              />
+                              {isDead && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                  <X className="text-red-500" size={20} />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <span>{player.name}</span>
+                        </div>
+                        {expandedPlayers.includes(playerId) ? (
+                          <ChevronUp className="ml-2" />
+                        ) : (
+                          <ChevronDown className="ml-2" />
                         )}
-                        <span>{player.name}</span>
+                      </button>
+                      <div className="flex items-center space-x-2">
+                        <MapPin size={16} />
+                        <span className="text-xs mr-1">Trail:</span>
+                        <Switch
+                          checked={playerTrailVisibility[playerId] || false}
+                          onCheckedChange={() => togglePlayerTrail(playerId)}
+                        />
                       </div>
-                      {expandedPlayers.includes(playerId) ? <ChevronUp /> : <ChevronDown />}
-                    </button>
+                    </div>
                     {expandedPlayers.includes(playerId) && player.hp && (
                       <div className="mt-2 pl-4 space-y-2 text-sm bg-gray-100 p-3 rounded-md">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-16">HP:</span>
-                          <Progress value={(player.hp[0] / player.hp[1]) * 100} className="w-full h-2" />
-                          <span className="w-16 text-right">{`${player.hp[0]}/${player.hp[1]}`}</span>
-                        </div>
                         <div className="flex items-center space-x-2">
                           <span className="w-16">Shield:</span>
                           <Progress value={(player.hp[2] / player.hp[3]) * 100} className="w-full h-2" />
                           <span className="w-16 text-right">{`${player.hp[2]}/${player.hp[3]}`}</span>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-16">HP:</span>
+                          <Progress value={(player.hp[0] / player.hp[1]) * 100} className="w-full h-2" />
+                          <span className="w-16 text-right">{`${player.hp[0]}/${player.hp[1]}`}</span>
+                        </div>
                         <div className="flex justify-between items-center">
                           <div className="flex items-center space-x-1">
                             <Skull className="w-4 h-4" />
-                            <span>Kills: {player.kills?.total || 0}</span>
+                            <span>Kills: {getPlayerStatValue(player, "kills")}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Zap className="w-4 h-4" />
-                            <span>Damage: {player.damageDealt?.total || 0}</span>
+                            <span>Damage: {getPlayerStatValue(player, "damageDealt")}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-1">
+                            <User className="w-4 h-4" />
+                            <span>Downs: {getPlayerStatValue(player, "downs")}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <UserMinus className="w-4 h-4" />
+                            <span>Downed: {getPlayerStatValue(player, "downsReceived")}</span>
                           </div>
                         </div>
                       </div>

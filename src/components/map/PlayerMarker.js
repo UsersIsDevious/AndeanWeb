@@ -2,7 +2,17 @@
 
 import { useEffect, useRef } from "react"
 
-const PlayerMarker = ({ map, player, color, L }) => {
+const PlayerMarker = ({
+  map,
+  player,
+  color,
+  L,
+  showPlayerName,
+  showTeamName,
+  showPlayerStatus,
+  isHighlighted,
+  isDowned,
+}) => {
   const markerRef = useRef(null)
 
   useEffect(() => {
@@ -18,20 +28,35 @@ const PlayerMarker = ({ map, player, color, L }) => {
       const [x, y] = player.pos
       markerRef.current = L.circleMarker([x, y], {
         radius: 5,
-        color: color,
+        color: isDowned ? "yellow" : isHighlighted ? "white" : color,
         fillColor: color,
         fillOpacity: 0.8,
+        weight: isDowned ? 2 : isHighlighted ? 3 : 1,
+        dashArray: isDowned ? "5, 5" : null,
       }).addTo(map)
 
       // Add a tooltip with player information
-      markerRef.current.bindTooltip(
+      let tooltipContent = ``
+      if (showTeamName) {
+        tooltipContent += `Team: ${player.teamName}<br>`
+      }
+      if (showPlayerName) {
+        tooltipContent += `${player.name}<br>`
+      }
+      if (showPlayerStatus) {
+        tooltipContent += `
+          HP: ${player.hp[0]}/${player.hp[1]}<br>
+          Shield: ${player.hp[2]}/${player.hp[3]}
         `
-        ID: ${player.id}
-        HP: ${player.hp[0]}/${player.hp[1]}
-        Shield: ${player.hp[2]}/${player.hp[3]}
-      `,
-        { permanent: false, direction: "top" },
-      )
+      }
+      if (isDowned) {
+        tooltipContent += `<br><strong>DOWNED</strong>`
+      }
+
+      markerRef.current.bindTooltip(tooltipContent, {
+        permanent: showPlayerName || showTeamName || showPlayerStatus,
+        direction: "top",
+      })
     } else if (markerRef.current) {
       markerRef.current.remove()
     }
@@ -41,7 +66,7 @@ const PlayerMarker = ({ map, player, color, L }) => {
         markerRef.current.remove()
       }
     }
-  }, [map, player, color, L])
+  }, [map, player, color, L, showPlayerName, showTeamName, showPlayerStatus, isHighlighted, isDowned])
 
   return null
 }

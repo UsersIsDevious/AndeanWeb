@@ -21,10 +21,17 @@ const useMapLogic = (initialMatchData) => {
   const [firstRingEventTime, setFirstRingEventTime] = useState(null)
   const [playerTrails, setPlayerTrails] = useState({})
   const [showPlayerMarkers, setShowPlayerMarkers] = useState(true)
-  const [showPlayerTrails, setShowPlayerTrails] = useState(true)
+  const [showPlayerTrails, setShowPlayerTrails] = useState(false) // Updated: Set to false
   const [showSkullMarkers, setShowSkullMarkers] = useState(true)
   const [showRingEvents, setShowRingEvents] = useState(true)
   const [showTeamEliminationEvents, setShowTeamEliminationEvents] = useState(true)
+  const [playerTrailVisibility, setPlayerTrailVisibility] = useState({})
+  const [showPlayerNames, setShowPlayerNames] = useState(false)
+  const [showTeamNames, setShowTeamNames] = useState(false)
+  const [showPlayerStatus, setShowPlayerStatus] = useState(true)
+  const [damageEvents, setDamageEvents] = useState([])
+  const [downedPlayers, setDownedPlayers] = useState([])
+  const DAMAGE_EVENT_DURATION = 2000 // 2 seconds
 
   const timerRef = useRef(null)
 
@@ -33,37 +40,8 @@ const useMapLogic = (initialMatchData) => {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !map && matchData) {
-      import("leaflet").then((LeafletModule) => {
-        setL(LeafletModule.default)
-        const customCRS = LeafletModule.default.extend({}, LeafletModule.default.CRS.Simple, {
-          transformation: new LeafletModule.default.Transformation(1, 2048, -1, 2048),
-          projection: {
-            project: (latlng) => new LeafletModule.default.Point(latlng.lat, latlng.lng),
-            unproject: (point) => new LeafletModule.default.LatLng(point.x, point.y),
-          },
-          bounds: LeafletModule.default.bounds([-2048, -2048], [2048, 2048]),
-        })
-
-        const newMap = LeafletModule.default.map("map", {
-          crs: customCRS,
-          minZoom: -3,
-          maxZoom: 3,
-          center: [0, 0],
-          zoom: 0,
-        })
-
-        const bounds = [
-          [-2048, -2048],
-          [2048, 2048],
-        ]
-        const image = LeafletModule.default
-          .imageOverlay(`${BASE_PATH}/img/${matchData.mapName}.png`, bounds)
-          .addTo(newMap)
-
-        newMap.fitBounds(bounds)
-        setMap(newMap)
-      })
+    if (!map && matchData) {
+      initializeMap()
     }
   }, [map, matchData])
 
@@ -75,62 +53,84 @@ const useMapLogic = (initialMatchData) => {
 
   useEffect(() => {
     if (matchData && matchData.packetLists) {
-      let maxTimeFromEvents = 0
-      Object.values(matchData.packetLists).forEach((packet) => {
-        if (packet.events) {
-          packet.events.forEach((event) => {
-            if (event.type === "ringStartClosing") {
-              const eventEndTime = (packet.t + event.shrinkduration) * 1000
-              if (eventEndTime > maxTimeFromEvents) {
-                maxTimeFromEvents = eventEndTime
-              }
-            }
-          })
-        }
-      })
-
-      const lastDataPointTime = Math.max(...Object.keys(matchData.packetLists).map(Number)) * 1000
-      setMaxTime(Math.max(maxTimeFromEvents, lastDataPointTime))
-
+      updateMaxTime()
       processEventsUpToTime(currentTime)
     }
-  }, [currentTime, matchData]) // Removed maxTime from dependencies
+  }, [currentTime, matchData])
 
   useEffect(() => {
     if (matchData && matchData.packetLists) {
-      const events = []
-      let firstRingTime = null
-      Object.entries(matchData.packetLists).forEach(([time, packet]) => {
-        if (packet.events) {
-          packet.events.forEach((event) => {
-            if (
-              event.type === "ringStartClosing" ||
-              event.type === "ringFinishedClosing" ||
-              event.type === "playerKilled" ||
-              event.type === "squadEliminated"
-            ) {
-              if (event.type === "ringStartClosing" && firstRingTime === null) {
-                firstRingTime = packet.t * 1000
-              }
-              events.push({
-                time: packet.t * 1000,
-                type: event.type,
-                stage: event.stage,
-                teamId: event.teamId,
-                color: event.type === "squadEliminated" ? getTeamColor(event.teamId) : undefined,
-              })
-            }
-          })
-        }
-      })
-      setTimelineEvents(events)
-      setFirstRingEventTime(firstRingTime)
-      setMaxTime(Math.max(...events.map((e) => e.time), maxTime))
-
-      processEventsUpToTime(Math.max(...events.map((e) => e.time)))
-      resetRingState()
+      processTimelineEvents()
     }
   }, [matchData])
+
+  useEffect(() => {
+    if (matchData && matchData.players) {
+      initializePlayerTrailVisibility()
+    }
+  }, [matchData])
+
+  const updateMaxTime = () => {
+    let maxTimeFromEvents = 0
+    Object.values(matchData.packetLists).forEach((packet) => {
+      if (packet.events) {
+        packet.events.forEach((event) => {
+          if (event.type === "ringStartClosing") {
+            const eventEndTime = (packet.t + event.shrinkduration) * 1000
+            if (eventEndTime > maxTimeFromEvents) {
+              maxTimeFromEvents = eventEndTime
+            }
+          }
+        })
+      }
+    })
+
+    const lastDataPointTime = Math.max(...Object.keys(matchData.packetLists).map(Number)) * 1000
+    setMaxTime(Math.max(maxTimeFromEvents, lastDataPointTime))
+  }
+
+  const processTimelineEvents = () => {
+    const events = []
+    let firstRingTime = null
+    Object.entries(matchData.packetLists).forEach(([time, packet]) => {
+      if (packet.events) {
+        packet.events.forEach((event) => {
+          if (
+            event.type === "ringStartClosing" ||
+            event.type === "ringFinishedClosing" ||
+            event.type === "playerKilled" ||
+            event.type === "squadEliminated"
+          ) {
+            if (event.type === "ringStartClosing" && firstRingTime === null) {
+              firstRingTime = packet.t * 1000
+            }
+            events.push({
+              time: packet.t * 1000,
+              type: event.type,
+              stage: event.stage,
+              teamId: event.teamId,
+              color: event.type === "squadEliminated" ? getTeamColor(event.teamId) : undefined,
+            })
+          }
+        })
+      }
+    })
+    setTimelineEvents(events)
+    setFirstRingEventTime(firstRingTime)
+    setMaxTime(Math.max(...events.map((e) => e.time), maxTime))
+
+    processEventsUpToTime(Math.max(...events.map((e) => e.time)))
+    resetRingState()
+  }
+
+  const initializePlayerTrailVisibility = () => {
+    // Updated function
+    const initialVisibility = Object.keys(matchData.players).reduce((acc, playerId) => {
+      acc[playerId] = false // Set to false by default
+      return acc
+    }, {})
+    setPlayerTrailVisibility(initialVisibility)
+  }
 
   const play = () => {
     setIsPlaying(true)
@@ -163,6 +163,7 @@ const useMapLogic = (initialMatchData) => {
     setIsPlaying(false)
     setCurrentPlayerData([])
     setSkullMarkers([])
+    setDownedPlayers([])
     setMatchData(newMatchData)
   }
 
@@ -190,97 +191,18 @@ const useMapLogic = (initialMatchData) => {
   const processEventsUpToTime = (targetTime) => {
     if (!matchData || !matchData.packetLists) return
 
-    const updatedPlayerData = Object.values(matchData.players).map((player) => ({
-      ...player,
-      hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
-      pos: [player.pos.x, player.pos.y, player.pos.z],
-      kills: { total: 0 },
-      damageDealt: { total: 0 },
-    }))
-
-    let currentCircleOptions = null
+    const updatedPlayerData = initializePlayerData()
+    const currentCircleOptions = null
     const newSkullMarkers = []
     const newEliminatedTeams = []
     const newPlayerTrails = {}
 
     Object.entries(matchData.packetLists).forEach(([time, packet]) => {
       if (packet.t * 1000 <= targetTime) {
-        packet.data.forEach((playerUpdate) => {
-          const playerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === playerUpdate.id)
-          if (playerIndex !== -1) {
-            updatedPlayerData[playerIndex] = {
-              ...updatedPlayerData[playerIndex],
-              ...playerUpdate,
-              pos: playerUpdate.pos || updatedPlayerData[playerIndex].pos,
-            }
-
-            if (!newPlayerTrails[playerUpdate.id]) {
-              newPlayerTrails[playerUpdate.id] = []
-            }
-            newPlayerTrails[playerUpdate.id].push(playerUpdate.pos)
-          }
-        })
-
+        updatePlayerPositions(packet, updatedPlayerData, newPlayerTrails)
         if (packet.events) {
           packet.events.forEach((event) => {
-            switch (event.type) {
-              case "ringStartClosing":
-                if (!currentCircleOptions) {
-                  currentCircleOptions = {
-                    center: event.center,
-                  }
-                }
-                currentCircleOptions = {
-                  ...currentCircleOptions,
-                  endCenter: event.center,
-                  startRadius: event.currentradius,
-                  endRadius: event.endradius,
-                  color: circleOptions ? circleOptions.color : "#ff0000",
-                  startTime: packet.t * 1000,
-                  endTime: (packet.t + event.shrinkduration) * 1000,
-                }
-                break
-              case "ringFinishedClosing":
-                if (currentCircleOptions) {
-                  currentCircleOptions = {
-                    ...currentCircleOptions,
-                    startRadius: event.currentradius,
-                    endRadius: event.currentradius,
-                    startCenter: event.center,
-                    center: event.center,
-                  }
-                }
-                break
-              case "playerKilled":
-                const victimIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.victim.id)
-                const attackerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.attacker.id)
-                if (victimIndex !== -1) {
-                  updatedPlayerData[victimIndex] = {
-                    ...updatedPlayerData[victimIndex],
-                    hp: [0, updatedPlayerData[victimIndex].hp[1], 0, updatedPlayerData[victimIndex].hp[3]],
-                    pos: event.victim.pos,
-                  }
-                }
-                if (attackerIndex !== -1) {
-                  updatedPlayerData[attackerIndex] = {
-                    ...updatedPlayerData[attackerIndex],
-                    kills: {
-                      ...updatedPlayerData[attackerIndex].kills,
-                      total: (updatedPlayerData[attackerIndex].kills?.total || 0) + 1,
-                    },
-                    pos: event.attacker.pos,
-                  }
-                }
-                newSkullMarkers.push({
-                  position: event.victim.pos,
-                  startTime: packet.t * 1000,
-                  endTime: packet.t * 1000 + 5000,
-                })
-                break
-              case "squadEliminated":
-                newEliminatedTeams.push(event.teamId)
-                break
-            }
+            processEvent(event, packet, updatedPlayerData, newSkullMarkers, newEliminatedTeams, currentCircleOptions)
           })
         }
       }
@@ -295,19 +217,171 @@ const useMapLogic = (initialMatchData) => {
     setPlayerTrails(newPlayerTrails)
   }
 
+  const initializePlayerData = () => {
+    return Object.values(matchData.players).map((player) => ({
+      ...player,
+      hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
+      pos: [player.pos.x, player.pos.y, player.pos.z],
+      kills: { total: 0 },
+      damageDealt: { total: 0 },
+      downs: 0,
+      isDown: false,
+    }))
+  }
+
+  const updatePlayerPositions = (packet, updatedPlayerData, newPlayerTrails) => {
+    packet.data.forEach((playerUpdate) => {
+      const playerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === playerUpdate.id)
+      if (playerIndex !== -1) {
+        updatedPlayerData[playerIndex] = {
+          ...updatedPlayerData[playerIndex],
+          ...playerUpdate,
+          pos: playerUpdate.pos || updatedPlayerData[playerIndex].pos,
+        }
+
+        if (!newPlayerTrails[playerUpdate.id]) {
+          newPlayerTrails[playerUpdate.id] = []
+        }
+        newPlayerTrails[playerUpdate.id].push(playerUpdate.pos)
+      }
+    })
+  }
+
+  const processEvent = (
+    event,
+    packet,
+    updatedPlayerData,
+    newSkullMarkers,
+    newEliminatedTeams,
+    currentCircleOptions,
+  ) => {
+    switch (event.type) {
+      case "ringStartClosing":
+      case "ringFinishedClosing":
+        currentCircleOptions = processRingEvent(event, packet, currentCircleOptions)
+        break
+      case "playerKilled":
+        processPlayerKilledEvent(event, updatedPlayerData, newSkullMarkers, packet)
+        break
+      case "squadEliminated":
+        newEliminatedTeams.push(event.teamId)
+        break
+      case "playerDamaged":
+        processPlayerDamagedEvent(event, updatedPlayerData, packet)
+        break
+      case "playerDowned":
+        processPlayerDownedEvent(event, updatedPlayerData, packet)
+        break
+    }
+  }
+
+  const processRingEvent = (event, packet, currentCircleOptions) => {
+    if (event.type === "ringStartClosing") {
+      if (!currentCircleOptions) {
+        currentCircleOptions = { center: event.center }
+      }
+      currentCircleOptions = {
+        ...currentCircleOptions,
+        endCenter: event.center,
+        startRadius: event.currentradius,
+        endRadius: event.endradius,
+        color: circleOptions ? circleOptions.color : "#ff0000",
+        startTime: packet.t * 1000,
+        endTime: (packet.t + event.shrinkduration) * 1000,
+      }
+    } else if (event.type === "ringFinishedClosing") {
+      if (currentCircleOptions) {
+        currentCircleOptions = {
+          ...currentCircleOptions,
+          startRadius: event.currentradius,
+          endRadius: event.currentradius,
+          startCenter: event.center,
+          center: event.center,
+        }
+      }
+    }
+    return currentCircleOptions
+  }
+
+  const processPlayerKilledEvent = (event, updatedPlayerData, newSkullMarkers, packet) => {
+    const victimIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.victim.id)
+    const attackerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.attacker.id)
+    if (victimIndex !== -1) {
+      updatedPlayerData[victimIndex] = {
+        ...updatedPlayerData[victimIndex],
+        hp: [0, updatedPlayerData[victimIndex].hp[1], 0, updatedPlayerData[victimIndex].hp[3]],
+        pos: event.victim.pos,
+      }
+    }
+    if (attackerIndex !== -1) {
+      updatedPlayerData[attackerIndex] = {
+        ...updatedPlayerData[attackerIndex],
+        kills: {
+          ...updatedPlayerData[attackerIndex].kills,
+          total: (updatedPlayerData[attackerIndex].kills?.total || 0) + 1,
+        },
+        pos: event.attacker.pos,
+      }
+    }
+    newSkullMarkers.push({
+      position: event.victim.pos,
+      startTime: packet.t * 1000,
+      endTime: packet.t * 1000 + 5000,
+    })
+  }
+
+  const processPlayerDamagedEvent = (event, updatedPlayerData, packet) => {
+    const damageAttackerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.attacker.id)
+    const damageVictimIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.victim.id)
+
+    if (damageAttackerIndex !== -1 && event.attacker.pos) {
+      updatedPlayerData[damageAttackerIndex].pos = event.attacker.pos
+    }
+    if (damageVictimIndex !== -1 && event.victim.pos) {
+      updatedPlayerData[damageVictimIndex].pos = event.victim.pos
+    }
+
+    if (damageVictimIndex !== -1) {
+      updatedPlayerData[damageVictimIndex].hp = event.victim.hp
+    }
+    const newDamageEvent = {
+      attacker: event.attacker,
+      victim: event.victim,
+      startTime: packet.t * 1000,
+      endTime: packet.t * 1000 + DAMAGE_EVENT_DURATION,
+    }
+    setDamageEvents((prev) => [...prev, newDamageEvent])
+  }
+
+  const processPlayerDownedEvent = (event, updatedPlayerData, packet) => {
+    const downedAttackerIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.attacker.id)
+    const downedVictimIndex = updatedPlayerData.findIndex((p) => p.nucleusHash === event.victim.id)
+
+    if (downedAttackerIndex !== -1 && event.attacker.pos) {
+      updatedPlayerData[downedAttackerIndex].pos = event.attacker.pos
+      updatedPlayerData[downedAttackerIndex].downs = (updatedPlayerData[downedAttackerIndex].downs || 0) + 1
+    }
+    if (downedVictimIndex !== -1 && event.victim.pos) {
+      updatedPlayerData[downedVictimIndex].pos = event.victim.pos
+      updatedPlayerData[downedVictimIndex].hp = event.victim.hp
+      updatedPlayerData[downedVictimIndex].isDown = true
+    }
+    setDownedPlayers((prev) => [
+      ...prev,
+      {
+        id: event.victim.id,
+        startTime: packet.t * 1000,
+        endTime: packet.t * 1000 + 5000, // Assume downed state lasts for 5 seconds
+      },
+    ])
+  }
+
   const resetRingState = () => {
     setCircleOptions(null)
-    setCurrentPlayerData(
-      Object.values(matchData.players).map((player) => ({
-        ...player,
-        hp: [player.currentHealth, player.maxHealth, player.shieldHealth, player.shieldMaxHealth],
-        pos: [player.pos.x, player.pos.y, player.pos.z],
-        kills: { total: 0 },
-        damageDealt: { total: 0 },
-      })),
-    )
+    setCurrentPlayerData(initializePlayerData())
     setSkullMarkers([])
     setEliminatedTeams([])
+    setDownedPlayers([])
   }
 
   const getCurrentPlayerData = () => {
@@ -355,6 +429,68 @@ const useMapLogic = (initialMatchData) => {
   const toggleSkullMarkers = () => setShowSkullMarkers((prev) => !prev)
   const toggleRingEvents = () => setShowRingEvents((prev) => !prev)
   const toggleTeamEliminationEvents = () => setShowTeamEliminationEvents((prev) => !prev)
+  const togglePlayerNames = () => setShowPlayerNames((prev) => !prev)
+  const toggleTeamNames = () => setShowTeamNames((prev) => !prev)
+  const togglePlayerStatus = () => setShowPlayerStatus((prev) => !prev)
+
+  const togglePlayerTrail = (playerId) => {
+    setPlayerTrailVisibility((prev) => ({
+      ...prev,
+      [playerId]: !prev[playerId],
+    }))
+  }
+
+  const getNearestPacketTime = (targetTime) => {
+    if (!matchData || !matchData.packetLists) return null
+    const packetTimes = Object.keys(matchData.packetLists).map(Number)
+    return packetTimes.reduce((prev, curr) =>
+      Math.abs(curr * 1000 - targetTime) < Math.abs(prev * 1000 - targetTime) ? curr : prev,
+    )
+  }
+
+  const initializeMap = () => {
+    if (typeof window !== "undefined" && !map && matchData) {
+      import("leaflet").then((LeafletModule) => {
+        setL(LeafletModule.default)
+        const mapContainer = document.getElementById("map")
+        if (mapContainer && !mapContainer._leaflet_id) {
+          const customCRS = LeafletModule.default.extend({}, LeafletModule.default.CRS.Simple, {
+            transformation: new LeafletModule.default.Transformation(1, 2048, -1, 2048),
+            projection: {
+              project: (latlng) => new LeafletModule.default.Point(latlng.lat, latlng.lng),
+              unproject: (point) => new LeafletModule.default.LatLng(point.x, point.y),
+            },
+            bounds: LeafletModule.default.bounds([-2048, -2048], [2048, 2048]),
+          })
+
+          const newMap = LeafletModule.default.map("map", {
+            crs: customCRS,
+            minZoom: -3,
+            maxZoom: 3,
+            center: [0, 0],
+            zoom: 0,
+          })
+
+          const bounds = [
+            [-2048, -2048],
+            [2048, 2048],
+          ]
+          LeafletModule.default.imageOverlay(`${BASE_PATH}/img/${matchData.mapName}.png`, bounds).addTo(newMap)
+
+          newMap.fitBounds(bounds)
+          setMap(newMap)
+        }
+      })
+    }
+  }
+
+  const getActiveDamageEvents = () => {
+    return damageEvents.filter((event) => event.startTime <= currentTime && event.endTime > currentTime)
+  }
+
+  const getActiveDownedPlayers = () => {
+    return downedPlayers.filter((player) => player.startTime <= currentTime && player.endTime > currentTime)
+  }
 
   return {
     matchData,
@@ -396,6 +532,20 @@ const useMapLogic = (initialMatchData) => {
     toggleSkullMarkers,
     toggleRingEvents,
     toggleTeamEliminationEvents,
+    playerTrailVisibility,
+    togglePlayerTrail,
+    getNearestPacketTime,
+    showPlayerNames,
+    showTeamNames,
+    togglePlayerNames,
+    toggleTeamNames,
+    showPlayerStatus,
+    togglePlayerStatus,
+    initializeMap,
+    damageEvents,
+    getActiveDamageEvents,
+    downedPlayers,
+    getActiveDownedPlayers,
   }
 }
 

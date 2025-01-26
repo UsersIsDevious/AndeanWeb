@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Map from "../components/Map"
+import Map from "../components/Map/Map"
 import DataInput from "../components/DataInput"
 
 export default function Home() {

@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { BASE_PATH } from "../utils/constants.js"
+import LoadingAnimation from "./LoadingAnimation"
 
 const DataInput = ({ onDataSubmit }) => {
   const [inputData, setInputData] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     fetch(`${BASE_PATH}/sample.json`)
@@ -20,22 +22,27 @@ const DataInput = ({ onDataSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setIsLoading(true)
     try {
       const parsedData = JSON.parse(inputData)
       onDataSubmit(parsedData)
     } catch (error) {
       console.error("Invalid JSON:", error)
       alert("Invalid JSON. Please check your input.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
+      setIsLoading(true)
       const reader = new FileReader()
       reader.onload = (event) => {
         const content = event.target.result
         setInputData(content)
+        setIsLoading(false)
       }
       reader.readAsText(file)
     }
@@ -69,6 +76,11 @@ const DataInput = ({ onDataSubmit }) => {
         />
       </div>
       <Button type="submit">Submit Data</Button>
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <LoadingAnimation />
+        </div>
+      )}
     </form>
   )
 }
