@@ -6,8 +6,7 @@ export default function FileUploader({ onResult }) {
   const [resultText, setResultText] = useState("");
 
   useEffect(() => {
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-    const jw = new Worker(`${basePath}/workers/jsonWorker.js`);
+    const jw = new Worker('/AndeanWeb/workers/jsonWorker.js');
     setJsonWorker(jw);
     return () => {
       jw.terminate();
@@ -29,8 +28,7 @@ export default function FileUploader({ onResult }) {
       } else {
         jsonData = event.data;
       }
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-      const processorWorker = new Worker(`${basePath}/workers/processorWorker.js`);
+      const processorWorker = new Worker('/AndeanWeb/workers/processorWorker.js');
       processorWorker.onmessage = (event) => {
         // ここではオブジェクトではなく、文字列に変換して表示
         const output = typeof event.data === 'object' ? JSON.stringify(event.data, null, 2) : event.data;

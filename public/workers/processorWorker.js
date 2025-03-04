@@ -1053,11 +1053,10 @@ async function processTrailsFromFrames(frames, playersReference, matchId) {
 const MAX_WORKERS = 30;
 const workerPool = []; // { worker: Worker, busy: boolean } の配列
 const taskQueue = [];
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 // プールの初期化
 for (let i = 0; i < MAX_WORKERS; i++) {
-  const worker = new Worker(`${basePath}/workers/saveIndexedDBWorker.js`);
+  const worker = new Worker("/AndeanWeb/workers/saveIndexedDBWorker.js");
   workerPool.push({ worker, busy: false });
 }
 
@@ -1112,7 +1111,7 @@ async function saveIndexedDB(message) {
 /* async function saveIndexedDB(message) {
   //console.log(message.type)
   totalItemsToSave++;
-  const saveWorker = new Worker("/workers/saveIndexedDBWorker.js");
+  const saveWorker = new Worker("/AndeanWeb/workers/saveIndexedDBWorker.js");
   saveWorker.onmessage = function (event) {
     if (event.data.type === "saveSuccess") {
       totalSavedItems++;
