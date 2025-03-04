@@ -67,7 +67,7 @@ export default function MapDisplay({ matchMeta, currentFrame }) {
   layers.push(
     new BitmapLayer({
       id: "background-image",
-      image: `/img/${matchMeta.mapName}.png`, // public配下の画像パスに合わせて調整
+      image: `/AndeanWeb/img/${matchMeta.mapName}.png`, // public配下の画像パスに合わせて調整
       // 画像の中心が (0,0) になるように bounds を設定
       bounds: [-2048, -2048, 2048, 2048],
       opacity: 1
