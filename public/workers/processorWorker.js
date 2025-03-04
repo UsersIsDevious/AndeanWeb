@@ -1053,10 +1053,11 @@ async function processTrailsFromFrames(frames, playersReference, matchId) {
 const MAX_WORKERS = 30;
 const workerPool = []; // { worker: Worker, busy: boolean } の配列
 const taskQueue = [];
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 // プールの初期化
 for (let i = 0; i < MAX_WORKERS; i++) {
-  const worker = new Worker("/workers/saveIndexedDBWorker.js");
+  const worker = new Worker(`${basePath}/workers/saveIndexedDBWorker.js`);
   workerPool.push({ worker, busy: false });
 }
 

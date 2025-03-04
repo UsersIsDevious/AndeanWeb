@@ -22,7 +22,8 @@ function computeFrameKey(matchMeta, frameNumber) {
  */
 function fetchFrameFromDB(matchMeta, frameKey) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker("/workers/frameChunkWorker.js");
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+    const worker = new Worker(`${basePath}/workers/frameChunkWorker.js`);
     worker.onmessage = (e) => {
       const data = e.data;
       if (data.type === "frameChunk") {
