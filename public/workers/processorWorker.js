@@ -48,9 +48,12 @@ function dataProcessing(packetData, playersStatus) {
   if (packetData && Array.isArray(packetData)) {
     packetData.forEach(item => {
       if (playersStatus[item.id]) {
-        // dataから取得したposはdataPosとして保存
+        // dataから取得した位置情報を保存
         playersStatus[item.id].dataPos = { x: item.pos[0], y: item.pos[1], z: item.pos[2] };
+        // hp の更新
         playersStatus[item.id].currentHealth = item.hp[0];
+        // 角度 (ang) の更新を追加
+        playersStatus[item.id].angle = item.ang;
       }
     });
   }
@@ -936,6 +939,7 @@ function createFrame(frameData) {
       position: [player.pos.x, -player.pos.y],
       nucleusHash: player.nucleusHash,
       teamId: player.teamId,
+      angle: player.angle,
       status: player.status
     });
   }

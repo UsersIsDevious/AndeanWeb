@@ -1,19 +1,18 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { DeckGL } from "@deck.gl/react";
 import { OrthographicView } from "@deck.gl/core";
 import { BitmapLayer, IconLayer, PolygonLayer } from "@deck.gl/layers";
 
-// アイコンマッピング情報（スプライトシート上の各アイコンの位置とサイズ）
+// アイコンマッピング情報（グレースケールのスプライトシート利用想定）
 const iconMapping = {
   defaultIcon: { x: 0, y: 0, width: 128, height: 128, mask: true },
   shieldIcon: { x: 128, y: 0, width: 128, height: 128, mask: true },
   skullIcon: { x: 256, y: 0, width: 128, height: 128, mask: true }
 };
-
 const iconAtlas = "/AndeanWeb/img/icons.png";
 
-// チームIDに応じたマーカー色を返す
+// チームIDに応じたマーカー色
 function getMarkerColor(teamId) {
   switch (teamId) {
     case 1:
@@ -61,39 +60,72 @@ function getMarkerColor(teamId) {
   }
 }
 
+// コントロールパネルコンポーネント
+function ControlPanel({ 
+  showSkull, 
+  setShowSkull, 
+  showDown, 
+  setShowDown, 
+  showFrameData, 
+  setShowFrameData 
+}) {
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 10,
+      left: 10,
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      color: "#fff",
+      padding: "10px",
+      borderRadius: "4px",
+      fontSize: "14px"
+    }}>
+      <div>
+        <label>
+          <input 
+            type="checkbox" 
+            checked={showSkull} 
+            onChange={(e) => setShowSkull(e.target.checked)} 
+          />{" "}
+          ドクロアイコン表示
+        </label>
+      </div>
+      <div>
+        <label>
+          <input 
+            type="checkbox" 
+            checked={showDown} 
+            onChange={(e) => setShowDown(e.target.checked)} 
+          />{" "}
+          シールド（ダウン）アイコン表示
+        </label>
+      </div>
+      <div>
+        <label>
+          <input 
+            type="checkbox" 
+            checked={showFrameData} 
+            onChange={(e) => setShowFrameData(e.target.checked)} 
+          />{" "}
+          フレームデータ表示
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export default function MapDisplay({ matchMeta, currentFrame }) {
-  // viewState は背景画像中心を (0,0) に合わせる
+  // コントロールパネル用の状態
+  const [showSkull, setShowSkull] = useState(true);
+  const [showDown, setShowDown] = useState(true);
+  const [showFrameData, setShowFrameData] = useState(true);
+
   const viewState = {
     target: [0, 0],
     zoom: 0,
     minZoom: -5,
     maxZoom: 5
   };
-
-  // コントロールパネルの表示・非表示トグル用ステート
-  const [showSkull, setShowSkull] = useState(true);
-  const [showDown, setShowDown] = useState(true);
-  const [showFrameData, setShowFrameData] = useState(true);
-
-  // currentFrame.markers のうち、トグル状態に応じて表示するマーカーだけを抽出
-  const filteredMarkers = useMemo(() => {
-    if (!currentFrame || !currentFrame.markers) return [];
-    return currentFrame.markers.filter(m => {
-      if (m.status === "killed" && !showSkull) return false;
-      if (m.status === "down" && !showDown) return false;
-      return true;
-    });
-  }, [currentFrame, showSkull, showDown]);
-
-  // 生存プレイヤー・チーム数の計算（players オブジェクトを利用）
-  const { alivePlayerCount, aliveTeamCount } = useMemo(() => {
-    if (!currentFrame || !currentFrame.players) return { alivePlayerCount: 0, aliveTeamCount: 0 };
-    const alivePlayers = Object.values(currentFrame.players).filter(p => p.status === "alive");
-    return {
-      alivePlayerCount: alivePlayers.length,
-      aliveTeamCount: new Set(alivePlayers.map(p => p.teamId)).size
-    };
-  }, [currentFrame]);
 
   const layers = [];
 
@@ -102,34 +134,37 @@ export default function MapDisplay({ matchMeta, currentFrame }) {
     new BitmapLayer({
       id: "background-image",
       image: `/AndeanWeb/img/${matchMeta.mapName}.png`,
-      // ここは画像の向きに合わせて適切な bounds を設定（例として以下）
+      // 画像の中心が (0,0) に来るように設定（必要に応じて調整してください）
       bounds: [-2048, 2048, 2048, -2048],
       opacity: 1
     })
   );
 
   if (currentFrame) {
-    // マーカー（IconLayer）※ filteredMarkers を使用
-    layers.push(
-      new IconLayer({
-        id: "markers",
-        data: filteredMarkers,
-        iconAtlas,
-        iconMapping,
-        getIcon: (d) => {
-          if (d.status === "down") return "shieldIcon";
-          if (d.status === "killed") return "skullIcon";
-          return "defaultIcon";
-        },
-        getPosition: (d) => d.position,
-        getSize: 32,
-        sizeScale: 1,
-        getColor: (d) => getMarkerColor(d.teamId),
-        pickable: true
-      })
-    );
+    // マーカーを IconLayer で表示
+    if (currentFrame.markers && currentFrame.markers.length > 0) {
+      layers.push(
+        new IconLayer({
+          id: "markers",
+          data: currentFrame.markers,
+          iconAtlas,
+          iconMapping,
+          getIcon: (d) => {
+            if (d.status === "killed" && showSkull) return "skullIcon";
+            if (d.status === "down" && showDown) return "shieldIcon";
+            return "defaultIcon";
+          },
+          getPosition: (d) => d.position,
+          getSize: () => 32,
+          sizeScale: 1,
+          getColor: (d) => getMarkerColor(d.teamId),
+          getAngle: (d) => d.angle - 90,
+          pickable: true
+        })
+      );
+    }
 
-    // リング（PolygonLayer）
+    // リングを PolygonLayer で描画
     if (currentFrame.ringPolygon && currentFrame.ringPolygon.polygon) {
       layers.push(
         new PolygonLayer({
@@ -138,7 +173,7 @@ export default function MapDisplay({ matchMeta, currentFrame }) {
           getPolygon: (d) => d.polygon,
           stroked: true,
           filled: true,
-          getFillColor: [255, 165, 0, 100],
+          getFillColor: [255, 165, 0, 200],
           lineWidthMinPixels: 2,
           getLineColor: [255, 255, 255],
           pickable: true
@@ -156,91 +191,54 @@ export default function MapDisplay({ matchMeta, currentFrame }) {
         layers={layers}
         style={{ width: "100%", height: "100%" }}
       />
-
       {/* コントロールパネル（左下） */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 10,
-          left: 10,
-          backgroundColor: "rgba(0,0,0,0.7)",
-          color: "white",
-          padding: "10px",
-          borderRadius: "4px",
-          fontSize: "14px",
-          zIndex: 1000
-        }}
-      >
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={showSkull}
-              onChange={() => setShowSkull(!showSkull)}
-            />
-            骸骨表示
-          </label>
-        </div>
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={showDown}
-              onChange={() => setShowDown(!showDown)}
-            />
-            ダウン表示
-          </label>
-        </div>
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={showFrameData}
-              onChange={() => setShowFrameData(!showFrameData)}
-            />
-            フレームデータ表示
-          </label>
-        </div>
-      </div>
-
-      {/* 現在のフレームデータ表示（オプション） */}
+      <ControlPanel 
+        showSkull={showSkull} 
+        setShowSkull={setShowSkull}
+        showDown={showDown} 
+        setShowDown={setShowDown}
+        showFrameData={showFrameData}
+        setShowFrameData={setShowFrameData}
+      />
+      {/* フレームデータ表示パネル（表示ON/OFF切替：中央下部なども検討可能） */}
       {showFrameData && currentFrame && (
         <div
           style={{
             position: "absolute",
             bottom: 10,
             right: 10,
-            backgroundColor: "rgba(0,0,0,0.7)",
-            color: "white",
+            zIndex: 1000,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            color: "#fff",
             padding: "10px",
             borderRadius: "4px",
             fontSize: "12px",
             maxHeight: "40%",
-            overflowY: "auto",
-            zIndex: 1000
+            overflowY: "auto"
           }}
         >
           <pre>{JSON.stringify(currentFrame, null, 2)}</pre>
         </div>
       )}
-
-      {/* 右上の生存チーム数・生存プレイヤー数表示 */}
-      <div
-        style={{
+      {/* 生存情報表示パネル（右上） */}
+      {currentFrame && (
+        <div style={{
           position: "absolute",
           top: 10,
           right: 10,
-          backgroundColor: "rgba(255,255,255,0.9)",
+          zIndex: 1000,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          color: "#fff",
           padding: "10px",
           borderRadius: "4px",
           fontSize: "16px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-          zIndex: 1000
-        }}
-      >
-        <div>生存チーム数: {aliveTeamCount}</div>
-        <div>生存プレイヤー数: {alivePlayerCount}</div>
-      </div>
+          textAlign: "center"
+        }}>
+          <div>リング回数：{currentFrame.ringCount}</div>
+          <div>生存プレイヤー数：{currentFrame.alivePlayerCount}</div>
+          <div>生存チーム数：{currentFrame.aliveTeamCount}</div>
+        </div>
+      )}
     </div>
   );
 }
