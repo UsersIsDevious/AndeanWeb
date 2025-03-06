@@ -9,8 +9,7 @@ export default function Home() {
   const [selectedMatch, setSelectedMatch] = useState(null);
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4">マッチ再現システム</h1>
+    <div className="">
       {!selectedMatch ? (
         <>
           {/* ファイルアップロードおよびマッチ一覧 UI を表示 */}

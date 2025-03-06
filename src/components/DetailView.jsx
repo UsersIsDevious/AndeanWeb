@@ -98,7 +98,7 @@ export default function DetailView({ matchMeta, progress, currentFrame }) {
 
       {/* チーム一覧：スクロール可能な領域に包む */}
       {matchMeta.teams && (
-        <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
+        <div className="overflow-y-auto" style={{ maxHeight: "67vh" }}>
           <h3 className="mt-4 font-semibold">チーム一覧</h3>
           {Object.entries(matchMeta.teams).map(([teamId, team]) => {
             // チームの players 配列が存在し、かつ1人以上の場合のみ表示
@@ -142,8 +142,6 @@ export default function DetailView({ matchMeta, progress, currentFrame }) {
           })}
         </div>
       )}
-
-      <div className="text-center text-sm">読み込み進捗: {progress}</div>
     </div>
   );
 }

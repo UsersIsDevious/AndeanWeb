@@ -70,11 +70,40 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           break;
         }
         case "ringStartClosing": {
-          // 更新：目標座標, 目標半径, 終了タイミング
-          ringStatus.target = { x: evt.center[0], y: evt.center[1] };
-          ringStatus.targetRadius = evt.endradius;
-          ringStatus.endTime = evt.shrinkduration;
-          ringStatus.startTimeStamp = currentTime;
+          ringCount++;
+          if ("center" in evt) {
+            console.log("リングデータの書き換え開始 (centerあり)");
+            console.log(ringStatus);
+            console.log(evt);
+
+            // centerがある場合の更新処理
+            ringStatus.target = { x: evt.center[0], y: evt.center[1] };
+            ringStatus.targetRadius = evt.endradius;
+            ringStatus.endTime = evt.shrinkduration;
+            ringStatus.startTimeStamp = currentTime;
+
+            console.log(ringStatus);
+            console.log("リングデータの書き換え完了");
+
+          } else if ("endCenter" in evt && "startCenter" in evt) {
+            console.log("リングデータの書き換え開始 (endCenterとstartCenterあり)");
+            console.log(ringStatus);
+            console.log(evt);
+
+            // endCenterとstartCenterがある場合の更新処理
+            // ※ ここは仕様に合わせて適切に更新処理を記述してください
+            ringStatus.target = { x: evt.endCenter[0], y: evt.endCenter[1] };
+            ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
+            ringStatus.targetRadius = evt.endradius;
+            ringStatus.endTime = evt.shrinkduration;
+            ringStatus.startTimeStamp = currentTime;
+
+            console.log(ringStatus);
+            console.log("リングデータの書き換え完了");
+
+          } else {
+            console.error("evtに必要なキーがありません");
+          }
           break;
         }
         case "ringFinishedClosing": {
@@ -102,7 +131,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "playerUpgradeTierChanged": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -123,7 +152,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "playerDamaged": {
           const victimId = evt.victim.id;
           if (playersStatus[victimId]) {
@@ -481,19 +510,19 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           if (playersStatus[playerId]) {
             //console.log(`inventoryUse: Updating inventory for player ${playerId}`);
             // インベントリの初期化（items をオブジェクトとして）
-/*             if (!playersStatus[playerId].inventory) {
-              playersStatus[playerId].inventory = { items: {} };
-            }
-            // 既存の数量に対して、今回の使用数量を減算（なければ 0 から）
-            const currentQuantity = playersStatus[playerId].inventory.items[evt.item] || 0;
-            const newQuantity = currentQuantity - evt.quantity;
-            if (newQuantity <= 0) {
-              //console.log(`inventoryUse: Removing item "${evt.item}" because quantity dropped to ${newQuantity}`);
-              delete playersStatus[playerId].inventory.items[evt.item];
-            } else {
-              playersStatus[playerId].inventory.items[evt.item] = newQuantity;
-              //console.log(`inventoryUse: Updated quantity of "${evt.item}" is ${newQuantity}`);
-            } */
+            /*             if (!playersStatus[playerId].inventory) {
+                          playersStatus[playerId].inventory = { items: {} };
+                        }
+                        // 既存の数量に対して、今回の使用数量を減算（なければ 0 から）
+                        const currentQuantity = playersStatus[playerId].inventory.items[evt.item] || 0;
+                        const newQuantity = currentQuantity - evt.quantity;
+                        if (newQuantity <= 0) {
+                          //console.log(`inventoryUse: Removing item "${evt.item}" because quantity dropped to ${newQuantity}`);
+                          delete playersStatus[playerId].inventory.items[evt.item];
+                        } else {
+                          playersStatus[playerId].inventory.items[evt.item] = newQuantity;
+                          //console.log(`inventoryUse: Updated quantity of "${evt.item}" is ${newQuantity}`);
+                        } */
 
             // hp 関連の更新
             playersStatus[playerId].currentHealth = evt.hp[0];
@@ -543,7 +572,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           } else {
             console.warn(`BannerCollected: Collector ${collectorId} not found in playersStatus.`);
           }
-        
+
           // 回収対象プレイヤーの処理
           if (evt.collected && evt.collected.id) {
             const collectedId = evt.collected.id;
@@ -559,7 +588,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "playerAbilityUsed": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -591,7 +620,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "LegendUpgradeSelected": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -620,7 +649,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "ziplineUsed": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -678,7 +707,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "BlackMarketAction": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -709,7 +738,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "wraithPortal": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -736,7 +765,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
         case "WarpGateUsed": {
           break;
         }
@@ -764,17 +793,17 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
               newammocount: evt.newammocount
             };
             // オプション：インベントリ内の弾薬数を更新する場合は以下のようにする
-            
-/*             if (playersStatus[playerId].inventory && playersStatus[playerId].inventory.ammo) {
-              playersStatus[playerId].inventory.ammo[evt.ammotype] = evt.newammocount;
-            } */
-            
+
+            /*             if (playersStatus[playerId].inventory && playersStatus[playerId].inventory.ammo) {
+                          playersStatus[playerId].inventory.ammo[evt.ammotype] = evt.newammocount;
+                        } */
+
           } else {
             console.warn(`ammoUsed: Player ${playerId} not found in playersStatus.`);
           }
           break;
         }
-        
+
         case "weaponSwitched": {
           const playerId = evt.id;
           if (playersStatus[playerId]) {
@@ -798,7 +827,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
           }
           break;
         }
-        
+
       }
       // イベントの保存前にカウンターをインクリメント
       eventCounter++;
@@ -834,7 +863,8 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
     ringStatus.currentRadius = 3000;
   } else {
     // イベントが発生している場合の補間処理
-    const elapsed = currentTime - ringStatus.startTimeStamp;
+    //const elapsed = currentTime - ringStatus.startTimeStamp;
+    const elapsed = (currentTime - ringStatus.startTimeStamp) / 1000;
     //console.log("Elapsed time since startTimeStamp:", elapsed, "seconds");
     if (elapsed < ringStatus.endTime) {
       const ratio = elapsed / ringStatus.endTime;
@@ -868,7 +898,7 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
   //console.log("Computed outerPoints (first 3 points):", outerPoints.slice(0, 3));
 
   // 内側リングは現在のリング状態を利用（イベント前は (0,0) 半径 2048 になる）
-  const innerCenter = [ringStatus.current.x, ringStatus.current.y];
+  const innerCenter = [ringStatus.current.x, -ringStatus.current.y];
   //console.log("innerCenter computed as:", innerCenter);
   const innerPoints = createCirclePoints(innerCenter, ringStatus.currentRadius, numPoints);
   //console.log("Computed innerPoints before reverse (first 3 points):", innerPoints.slice(0, 3));
@@ -885,7 +915,7 @@ function createCirclePoints(center, radius, numPoints = 64) {
   for (let i = 0; i < numPoints; i++) {
     const angle = (i / numPoints) * 2 * Math.PI;
     const x = center[0] + radius * Math.cos(angle);
-    const y = center[1] + radius * Math.sin(angle);
+    const y = center[1] - radius * Math.sin(angle);
     points.push([x, y]);
   }
   //console.log("createCirclePoints generated", points.length, "points.");
@@ -903,9 +933,10 @@ function createFrame(frameData) {
     const player = frameData.players[key];
     // player.posには、packet処理時に最終決定した座標が入っているはず
     markers.push({
-      position: [player.pos.x, player.pos.y],
+      position: [player.pos.x, -player.pos.y],
       nucleusHash: player.nucleusHash,
-      teamId: player.teamId
+      teamId: player.teamId,
+      status: player.status
     });
   }
 
@@ -938,7 +969,7 @@ function createFrameData(matchId, timestamp, playersStatus, currentRing) {
     matchId: matchId,
     timestamp: timestamp,
     players: playersStatus,
-    ring: currentRing // currentRing は { outerPoints, innerPoints } を含む
+    ring: currentRing, // currentRing は { outerPoints, innerPoints } を含む
   };
 }
 
@@ -989,11 +1020,19 @@ async function packetListprocess(packetList, packetSortedKeys, matchId, playersS
     const frameData = createFrameData(matchId, currentTime, playersStatus, currentRing);
     // 新フォーマットのフレーム生成
     const newFrame = createFrame(frameData);
+    // 生存プレーヤーを抽出（status が "alive" としている前提）
+    const alivePlayers = Object.values(playersStatus).filter(p => p.status === "alive");
+    const alivePlayerCount = alivePlayers.length;
+    // 生存プレーヤーのチームIDを一意に集計
+    const aliveTeamCount = new Set(alivePlayers.map(p => p.teamId)).size;
     // フレームID・タイトルを設定
     newFrame.id = `${matchId}_${frameCounter}`;
     newFrame.title = `${matchId}_${frameCounter}`;
     newFrame.matchId = matchId;
     newFrame.timestamp = currentTime;
+    newFrame.ringCount = ringCount;
+    newFrame.alivePlayerCount = alivePlayerCount;
+    newFrame.aliveTeamCount = aliveTeamCount;
     processedFrames.push(newFrame);
     chunkFrames.push(newFrame);
     frameCounter++;
@@ -1063,7 +1102,7 @@ for (let i = 0; i < MAX_WORKERS; i++) {
 // タスクを割り当てる関数
 function dispatchTask() {
   if (taskQueue.length === 0) return; // タスクがなければ終了
-  
+
   // idle なワーカーを探す
   const idleWorkerObj = workerPool.find(wObj => !wObj.busy);
   if (!idleWorkerObj) return; // idle なワーカーがない場合はそのまま待機
@@ -1071,7 +1110,7 @@ function dispatchTask() {
   // キューからタスクを取り出す
   const task = taskQueue.shift();
   idleWorkerObj.busy = true;
-  
+
   // ワーカーの onmessage ハンドラ設定（各タスク実行時に設定し直す）
   idleWorkerObj.worker.onmessage = function (event) {
     if (event.data.type === "saveSuccess") {
@@ -1144,6 +1183,7 @@ let eventKeys = [];
 let trailKeys = [];
 let totalSavedItems = 0;
 let totalItemsToSave = 0;
+let ringCount = 0;
 let globalMatchId = null;
 let processCompleteSent = false;
 
@@ -1220,7 +1260,7 @@ self.onmessage = async function (e) {
     // 追加：イベントキーとトレイルキーを保存
     matchMeta.eventKeys = eventKeys;
     matchMeta.trailKeys = trailKeys;
-    
+
     //console.log("Saving matchMeta:", matchMeta);
     await saveIndexedDB({ type: "saveMatchMeta", matchMeta: matchMeta });
 
