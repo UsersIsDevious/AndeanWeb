@@ -82,7 +82,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             // centerがある場合の更新処理
             ringStatus.target = { x: evt.center[0], y: evt.center[1] };
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration * 1000;
+            ringStatus.endTime = evt.shrinkduration;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
@@ -99,7 +99,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
             ringStatus.startRadius = evt.currentradius;
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration * 1000 + 3000;
+            ringStatus.endTime = evt.shrinkduration;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
@@ -873,7 +873,7 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
   } else {
     // イベントが発生している場合の補間処理
     //const elapsed = currentTime - ringStatus.startTimeStamp;
-    const elapsed = (currentTime - ringStatus.startTimeStamp) * 1000;
+    const elapsed = (currentTime - ringStatus.startTimeStamp);
     //console.log("Elapsed time since startTimeStamp:", elapsed, "seconds");
     if (elapsed < ringStatus.endTime) {
       const ratio = elapsed / ringStatus.endTime;
