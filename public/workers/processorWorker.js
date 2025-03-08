@@ -98,7 +98,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             ringStatus.target = { x: evt.endCenter[0], y: evt.endCenter[1] };
             ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration * 1000;
+            ringStatus.endTime = evt.shrinkduration * 1000 + 3000;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
