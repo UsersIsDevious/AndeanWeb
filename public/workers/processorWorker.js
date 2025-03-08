@@ -880,15 +880,15 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
       //console.log("Interpolation ratio:", ratio);
 
       //console.log("Before interpolation - current.x:", ringStatus.current.x, "target.x:", ringStatus.target.x);
-      ringStatus.current.x = ringStatus.current.x + ratio * (ringStatus.target.x - ringStatus.start.x);
+      ringStatus.current.x = ringStatus.start.x + ratio * (ringStatus.target.x - ringStatus.start.x);
       //console.log("After interpolation - current.x:", ringStatus.current.x);
 
       //console.log("Before interpolation - current.y:", ringStatus.current.y, "target.y:", ringStatus.target.y);
-      ringStatus.current.y = ringStatus.current.y + ratio * (ringStatus.target.y - ringStatus.start.y);
+      ringStatus.current.y = ringStatus.start.y + ratio * (ringStatus.target.y - ringStatus.start.y);
       //console.log("After interpolation - current.y:", ringStatus.current.y);
 
       //console.log("Before interpolation - currentRadius:", ringStatus.currentRadius, "targetRadius:", ringStatus.targetRadius);
-      ringStatus.currentRadius = ringStatus.currentRadius + ratio * (ringStatus.targetRadius - ringStatus.startRadius);
+      ringStatus.currentRadius = ringStatus.startRadius + ratio * (ringStatus.targetRadius - ringStatus.startRadius);
       //console.log("After interpolation - currentRadius:", ringStatus.currentRadius);
     } else {
       //console.log("Elapsed time exceeds endTime. Setting current values to target values.");
