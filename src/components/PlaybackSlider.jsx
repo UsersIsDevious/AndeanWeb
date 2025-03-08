@@ -6,20 +6,21 @@ export default function PlaybackControls({
   totalFrames,
   stepInterval = 1,
   onFrameChange,
-  onPlayPause
+  onRequestEvents
 }) {
   const [value, setValue] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [showEventIcons, setShowEventIcons] = useState(true);
+  const [requestedEvents, setRequestedEvents] = useState([]);
   const timerRef = useRef(null);
   const lastUpdatedFrameRef = useRef(0);
-  // 60FPSの場合は約16ms間隔
   const FPS_INTERVAL = 1000 / 60;
 
   useEffect(() => {
     console.log("PlaybackControls mounted. totalFrames:", totalFrames);
   }, [totalFrames]);
 
-  // シークバーの値変更時：100フレーム以上の変化があれば即時更新、また200ms後に最終値を更新
+  // シークバーの変更処理（デバウンス付き）
   useEffect(() => {
     if (Math.abs(value - lastUpdatedFrameRef.current) >= 100) {
       onFrameChange(value);
@@ -34,7 +35,7 @@ export default function PlaybackControls({
     return () => clearTimeout(handler);
   }, [value, onFrameChange]);
 
-  // 再生状態に応じた自動再生処理（60FPS）
+  // 60FPSの自動再生処理
   useEffect(() => {
     if (playing) {
       timerRef.current = setInterval(() => {
@@ -56,15 +57,16 @@ export default function PlaybackControls({
     return () => clearInterval(timerRef.current);
   }, [playing, totalFrames, onFrameChange]);
 
-  // 再生／停止ボタンのトグル
-  const togglePlayPause = () => {
-    setPlaying((prev) => {
-      const newPlaying = !prev;
-      if (onPlayPause) {
-        onPlayPause(newPlaying);
-      }
-      return newPlaying;
-    });
+  // ユーザーがイベント表示を切り替えたときの処理
+  const toggleEventDisplay = () => {
+    const newVal = !showEventIcons;
+    setShowEventIcons(newVal);
+    // ここで特定イベントのみをリクエスト（例："ringStartClosing"）
+    if (newVal) {
+      onRequestEvents(["ringStartClosing"]);
+    } else {
+      setRequestedEvents([]);
+    }
   };
 
   return (
@@ -73,7 +75,7 @@ export default function PlaybackControls({
         type="range"
         min={0}
         max={totalFrames - 1}
-        step={stepInterval}
+        step={1}
         value={value}
         onChange={(e) => {
           const newValue = Number(e.target.value);
@@ -81,14 +83,47 @@ export default function PlaybackControls({
         }}
         className="w-full"
       />
-      <div className="mt-2">
-        <Button variant="outline" size="sm" onClick={togglePlayPause}>
+      <div className="mt-2 flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setPlaying((prev) => !prev)}>
           {playing ? "停止" : "再生"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={toggleEventDisplay}>
+          {showEventIcons ? "イベント非表示" : "イベント表示"}
         </Button>
       </div>
       <div className="mt-2 text-center text-sm">
         現在のフレーム: {value + 1} / {totalFrames}
       </div>
+      {/* イベントアイコン表示エリア（例：シークバー上にオーバーレイ表示） */}
+      {showEventIcons && requestedEvents.length > 0 && (
+        <div style={{
+          position: "relative",
+          width: "100%",
+          height: "30px",
+          marginTop: "10px",
+          backgroundColor: "rgba(0,0,0,0.1)"
+        }}>
+          {requestedEvents.map((evt, idx) => {
+            // evt には frameIndex（またはタイムスタンプ）情報が含まれると仮定
+            // シークバーの幅に対して位置を計算（ここでは簡易的に）
+            const leftPercent = (evt.frameIndex / totalFrames) * 100;
+            return (
+              <img 
+                key={idx}
+                src="/AndeanWeb/img/ringIcon.png" // 表示するアイコンのパス
+                alt="リング収縮開始"
+                style={{
+                  position: "absolute",
+                  left: `${leftPercent}%`,
+                  transform: "translateX(-50%)",
+                  height: "24px",
+                  filter: `drop-shadow(0 0 2px rgb(${getMarkerColor(evt.teamId).join(',')}))`
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

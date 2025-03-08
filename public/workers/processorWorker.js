@@ -62,7 +62,7 @@ function dataProcessing(packetData, playersStatus) {
 // グローバルなイベントカウンターを初期化
 let eventCounter = 0;
 // イベントデータ処理関数
-async function eventProcessing(events, playersStatus, ringStatus, currentTime, matchId) {
+async function eventProcessing(events, playersStatus, ringStatus, currentTime, matchId,frameCounter) {
   if (events && Array.isArray(events)) {
     events.forEach(async evt => {
       switch (evt.category) {
@@ -838,8 +838,13 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
       evt["matchId"] = matchId;
       evt["timestamp"] = currentTime;
       evt["id"] = eventId;
+      evt["frameIndex"] = frameCounter
 
-      eventKeys.push(eventId);
+      if (!eventKeys[evt.category]) {
+        eventKeys[evt.category] = [];
+      }
+      eventKeys[evt.category].push(eventId);
+
       chunkEvents.push(evt);
       if (chunkEvents.length >= CHUNK_SIZE) {
         saveIndexedDB({ type: "saveEventChunk", events: chunkEvents.slice() });
@@ -988,7 +993,7 @@ async function packetListprocess(packetList, packetSortedKeys, matchId, playersS
     const currentTime = packet.t;
     if (packet.events.length >= 1) {
       // イベントによる playersStatus の更新
-      eventProcessing(packet.events, playersStatus, ringStatus, currentTime, matchId);
+      eventProcessing(packet.events, playersStatus, ringStatus, currentTime, matchId,frameCounter);
     }
     // packet.data による playersStatus の更新
     dataProcessing(packet.data, playersStatus);
@@ -1183,7 +1188,7 @@ async function saveIndexedDB(message) {
 let chunkFrames = [];
 let chunkEvents = [];
 let chunkTrails = [];
-let eventKeys = [];
+let eventKeys = {};
 let trailKeys = [];
 let totalSavedItems = 0;
 let totalItemsToSave = 0;
