@@ -97,6 +97,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             // ※ ここは仕様に合わせて適切に更新処理を記述してください
             ringStatus.target = { x: evt.endCenter[0], y: evt.endCenter[1] };
             ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
+            ringStatus.startRadius = evt.currentradius;
             ringStatus.targetRadius = evt.endradius;
             ringStatus.endTime = evt.shrinkduration * 1000 + 3000;
             ringStatus.startTimeStamp = currentTime;
@@ -887,7 +888,7 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
       //console.log("After interpolation - current.y:", ringStatus.current.y);
 
       //console.log("Before interpolation - currentRadius:", ringStatus.currentRadius, "targetRadius:", ringStatus.targetRadius);
-      ringStatus.currentRadius = ringStatus.currentRadius + ratio * (ringStatus.targetRadius - ringStatus.currentRadius);
+      ringStatus.currentRadius = ringStatus.currentRadius + ratio * (ringStatus.targetRadius - ringStatus.startRadius);
       //console.log("After interpolation - currentRadius:", ringStatus.currentRadius);
     } else {
       //console.log("Elapsed time exceeds endTime. Setting current values to target values.");
