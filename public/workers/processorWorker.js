@@ -872,7 +872,7 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
   } else {
     // イベントが発生している場合の補間処理
     //const elapsed = currentTime - ringStatus.startTimeStamp;
-    const elapsed = (currentTime - ringStatus.startTimeStamp) / 1000;
+    const elapsed = (currentTime - ringStatus.startTimeStamp) * 1000;
     //console.log("Elapsed time since startTimeStamp:", elapsed, "seconds");
     if (elapsed < ringStatus.endTime) {
       const ratio = elapsed / ringStatus.endTime;
