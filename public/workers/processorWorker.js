@@ -82,7 +82,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             // centerがある場合の更新処理
             ringStatus.target = { x: evt.center[0], y: evt.center[1] };
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration;
+            ringStatus.endTime = evt.shrinkduration * 1000;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
@@ -98,7 +98,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             ringStatus.target = { x: evt.endCenter[0], y: evt.endCenter[1] };
             ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration;
+            ringStatus.endTime = evt.shrinkduration * 1000;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
