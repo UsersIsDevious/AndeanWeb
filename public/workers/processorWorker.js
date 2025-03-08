@@ -98,7 +98,7 @@ async function eventProcessing(events, playersStatus, ringStatus, currentTime, m
             ringStatus.target = { x: evt.endCenter[0], y: evt.endCenter[1] };
             ringStatus.start = { x: evt.startCenter[0], y: evt.startCenter[1] };
             ringStatus.targetRadius = evt.endradius;
-            ringStatus.endTime = evt.shrinkduration;
+            ringStatus.endTime = evt.shrinkduration * 1000 + 3000;
             ringStatus.startTimeStamp = currentTime;
 
             console.log(ringStatus);
@@ -872,18 +872,18 @@ function calculateRingStatus(ringStatus, currentTime, numPoints = 64) {
   } else {
     // イベントが発生している場合の補間処理
     //const elapsed = currentTime - ringStatus.startTimeStamp;
-    const elapsed = (currentTime - ringStatus.startTimeStamp);
+    const elapsed = (currentTime - ringStatus.startTimeStamp) * 1000;
     //console.log("Elapsed time since startTimeStamp:", elapsed, "seconds");
     if (elapsed < ringStatus.endTime) {
       const ratio = elapsed / ringStatus.endTime;
       //console.log("Interpolation ratio:", ratio);
 
       //console.log("Before interpolation - current.x:", ringStatus.current.x, "target.x:", ringStatus.target.x);
-      ringStatus.current.x = ringStatus.current.x + ratio * (ringStatus.target.x - ringStatus.current.x);
+      ringStatus.current.x = ringStatus.current.x + ratio * (ringStatus.target.x - ringStatus.start.x);
       //console.log("After interpolation - current.x:", ringStatus.current.x);
 
       //console.log("Before interpolation - current.y:", ringStatus.current.y, "target.y:", ringStatus.target.y);
-      ringStatus.current.y = ringStatus.current.y + ratio * (ringStatus.target.y - ringStatus.current.y);
+      ringStatus.current.y = ringStatus.current.y + ratio * (ringStatus.target.y - ringStatus.start.y);
       //console.log("After interpolation - current.y:", ringStatus.current.y);
 
       //console.log("Before interpolation - currentRadius:", ringStatus.currentRadius, "targetRadius:", ringStatus.targetRadius);
